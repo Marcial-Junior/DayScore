@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#534AB7',
+        primary: 'rgb(var(--primary-rgb) / <alpha-value>)',
         success: '#1D9E75',
       },
       keyframes: {

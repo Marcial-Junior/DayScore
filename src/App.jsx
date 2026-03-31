@@ -14,6 +14,20 @@ import AchievementToast from './components/ui/AchievementToast'
 
 const SEEN_KEY = 'ds_seen_achievements'
 
+const ACCENT_COLORS = [
+  { value: '#534AB7', rgb: '83 74 183' },
+  { value: '#1D9E75', rgb: '29 158 117' },
+  { value: '#E24B4A', rgb: '226 75 74' },
+  { value: '#EF9F27', rgb: '239 159 39' },
+]
+
+// Apply saved accent color before first render
+const savedAccent = localStorage.getItem('ds_accent')
+if (savedAccent) {
+  const found = ACCENT_COLORS.find((c) => c.value === savedAccent)
+  if (found) document.documentElement.style.setProperty('--primary-rgb', found.rgb)
+}
+
 function App() {
   const [session, setSession] = useState(undefined) // undefined = loading
   const [activeTab, setActiveTab] = useState('today')
@@ -123,6 +137,9 @@ function App() {
         return (
           <Settings
             session={session}
+            tasks={tasks}
+            mood={mood}
+            routines={routines}
             onSignOut={() => supabase.auth.signOut()}
           />
         )
