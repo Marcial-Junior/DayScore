@@ -52,6 +52,13 @@ export const getWeekWindow = (weekOffset = 0) => {
   })
 }
 
+// Days between two date strings (positive = dateA is after dateB)
+export const daysBetween = (dateA, dateB) => {
+  const a = new Date(dateA + 'T12:00:00')
+  const b = new Date(dateB + 'T12:00:00')
+  return Math.round((a - b) / (1000 * 60 * 60 * 24))
+}
+
 // "07:00" → "7:00 AM"
 export const formatTime12h = (time24) => {
   const [h, m] = time24.split(':').map(Number)

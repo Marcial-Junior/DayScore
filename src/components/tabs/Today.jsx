@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { todayStr, formatDate } from '../../utils/dates'
+import { todayStr, formatDate, daysBetween } from '../../utils/dates'
 import { calcDayScore } from '../../utils/streak'
 import DateStrip from '../ui/DateStrip'
 import ScoreRing from '../ui/ScoreRing'
@@ -26,21 +26,42 @@ function greeting() {
   return 'Good evening'
 }
 
+// daysBetween(dueDate, today): negative = overdue, 0 = today, positive = future
+function dueBadge(dueDate, done) {
+  if (!dueDate || done) return null
+  const diff = daysBetween(dueDate, todayStr())
+  if (diff < 0) return { label: 'Overdue', cls: 'bg-red-50 text-red-500 border border-red-200' }
+  if (diff === 0) return { label: 'Due today', cls: 'bg-amber-50 text-amber-600 border border-amber-200' }
+  if (diff === 1) return { label: 'Tomorrow', cls: 'bg-amber-50 text-amber-500 border border-amber-100' }
+  const d = new Date(dueDate + 'T12:00:00')
+  const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return { label, cls: 'bg-gray-50 text-gray-400 border border-gray-200' }
+}
+
+// Sort: overdue (most negative diff first) → today → future → no date → done
+function urgencyScore(task) {
+  if (task.done) return 9999
+  if (!task.dueDate) return 1000
+  return daysBetween(task.dueDate, todayStr()) // negative = overdue, 0 = today, positive = future
+}
+
 export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
   const [weekOffset, setWeekOffset] = useState(0)
   const [newTask, setNewTask] = useState('')
-  const [newCategory, setNewCategory] = useState(null) // 'work' | 'personal' | null
+  const [newCategory, setNewCategory] = useState(null)
+  const [newDueDate, setNewDueDate] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [confettiOrigin, setConfettiOrigin] = useState(null)
-  const [recentMood, setRecentMood] = useState(null) // tracks recently set mood for animation
+  const [recentMood, setRecentMood] = useState(null)
 
   const isToday = selectedDate === today
   const isFuture = selectedDate > today
   const dayTasks = tasks[selectedDate] || []
-  const visibleTasks =
+  const filteredTasks =
     categoryFilter === 'all' ? dayTasks : dayTasks.filter((t) => t.category === categoryFilter)
+  const visibleTasks = [...filteredTasks].sort((a, b) => urgencyScore(a) - urgencyScore(b))
   const score = calcDayScore(dayTasks)
   const done = dayTasks.filter((t) => t.done).length
   const todayMood = mood[selectedDate] ?? null
@@ -54,10 +75,12 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
       done: false,
       isRoutine: false,
       category: newCategory,
+      dueDate: newDueDate || null,
     }
     updateTasks({ ...tasks, [selectedDate]: [...dayTasks, task] })
     setNewTask('')
     setNewCategory(null)
+    setNewDueDate('')
   }
 
   const toggleTask = (id, btnEl) => {
@@ -166,8 +189,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
               Add
             </button>
           </div>
-          {/* Category toggle */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap items-center">
             <button
               type="button"
               onClick={() => toggleNewCategory('work')}
@@ -190,6 +212,13 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             >
               🏠 Personal
             </button>
+            <input
+              type="date"
+              value={newDueDate}
+              onChange={(e) => setNewDueDate(e.target.value)}
+              className="px-3 py-1 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 cursor-pointer"
+              title="Due date (optional)"
+            />
           </div>
         </form>
 
@@ -226,56 +255,66 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
           </div>
         ) : (
           <ul>
-            {visibleTasks.map((task, i) => (
-              <li
-                key={task.id}
-                className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-gray-50 ${
-                  i < visibleTasks.length - 1 ? 'border-b border-gray-50' : ''
-                }`}
-              >
-                <button
-                  onClick={(e) => toggleTask(task.id, e.currentTarget)}
-                  className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                    task.done ? 'bg-success border-success' : 'border-gray-300 hover:border-primary'
+            {visibleTasks.map((task, i) => {
+              const badge = dueBadge(task.dueDate, task.done)
+              return (
+                <li
+                  key={task.id}
+                  className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-gray-50 ${
+                    i < visibleTasks.length - 1 ? 'border-b border-gray-50' : ''
                   }`}
                 >
-                  {task.done && <Checkmark />}
-                </button>
-                <span
-                  className={`flex-1 text-sm transition-all ${
-                    task.done ? 'line-through text-gray-400' : 'text-gray-700'
-                  }`}
-                >
-                  {task.text}
-                </span>
-                {task.category === 'work' && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">
-                    💼
-                  </span>
-                )}
-                {task.category === 'personal' && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-success border border-emerald-200 flex-shrink-0">
-                    🏠
-                  </span>
-                )}
-                {task.isRoutine && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
-                    routine
-                  </span>
-                )}
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
-                >
-                  <XIcon />
-                </button>
-              </li>
-            ))}
+                  <button
+                    onClick={(e) => toggleTask(task.id, e.currentTarget)}
+                    className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                      task.done ? 'bg-success border-success' : 'border-gray-300 hover:border-primary'
+                    }`}
+                  >
+                    {task.done && <Checkmark />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className={`text-sm block ${
+                        task.done ? 'line-through text-gray-400' : 'text-gray-700'
+                      }`}
+                    >
+                      {task.text}
+                    </span>
+                    {badge && (
+                      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded mt-0.5 font-medium ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    )}
+                  </div>
+                  {task.category === 'work' && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">
+                      💼
+                    </span>
+                  )}
+                  {task.category === 'personal' && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-success border border-emerald-200 flex-shrink-0">
+                      🏠
+                    </span>
+                  )}
+                  {task.isRoutine && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
+                      routine
+                    </span>
+                  )}
+                  <button
+                    onClick={() => deleteTask(task.id)}
+                    className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
+                  >
+                    <XIcon />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
 
-      {/* Mood selector — hide for future dates */}
+      {/* Mood selector */}
       {!isFuture && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
           <h2 className="font-semibold text-gray-900 text-sm mb-3">
@@ -297,7 +336,6 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                       : 'hover:bg-gray-50 scale-100'
                   }`}
                 >
-                  {/* Pulse ring on recent select */}
                   {recentMood === i && (
                     <span className="absolute inset-0 rounded-xl animate-ping bg-primary/20 pointer-events-none" />
                   )}
