@@ -1,4 +1,5 @@
 import { BADGES } from '../../utils/achievements'
+import { t } from '../../utils/i18n'
 
 const STREAK_MILESTONES = [3, 7, 14, 30, 100, 365]
 
@@ -6,7 +7,7 @@ function nextMilestone(streak) {
   return STREAK_MILESTONES.find((m) => m > streak) || STREAK_MILESTONES[STREAK_MILESTONES.length - 1]
 }
 
-export default function Achievements({ tasks, routines, streak }) {
+export default function Achievements({ tasks, routines, streak, lang }) {
   const ctx = { tasks, routines, streak }
   const unlockedCount = BADGES.filter((b) => b.check(ctx)).length
   const next = nextMilestone(streak)
@@ -14,17 +15,17 @@ export default function Achievements({ tasks, routines, streak }) {
 
   const streakLabel =
     streak === 0
-      ? 'Start your streak today!'
+      ? t('streak_zero', lang)
       : streak === 1
-      ? '1 day streak — keep going!'
-      : `${streak} day streak — keep it up!`
+      ? t('streak_one', lang)
+      : t('streak_many', lang, streak)
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">Awards</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t('awards', lang)}</h1>
         <p className="text-xs mt-0.5" style={{ color: '#1D9E75' }}>
-          {unlockedCount}/{BADGES.length} unlocked
+          {unlockedCount}/{BADGES.length} {t('unlocked', lang)}
         </p>
       </div>
 
@@ -37,7 +38,7 @@ export default function Achievements({ tasks, routines, streak }) {
         <div className="flex-1 min-w-0">
           <p className="text-3xl font-bold leading-none">{streak}</p>
           <p className="text-white/80 text-xs mt-1">{streakLabel}</p>
-          <p className="text-white/55 text-[10px] mt-1">Next milestone: {next} days</p>
+          <p className="text-white/55 text-[10px] mt-1">{t('next_milestone', lang)} {next} {t('days_unit', lang)}</p>
           <div className="h-1 bg-white/20 rounded-full mt-2 overflow-hidden">
             <div
               className="h-full bg-white/80 rounded-full transition-all duration-500"
@@ -48,7 +49,7 @@ export default function Achievements({ tasks, routines, streak }) {
       </div>
 
       {/* Achievements grid */}
-      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold px-1">Achievements</p>
+      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold px-1">{t('achievements_label', lang)}</p>
       <div className="grid grid-cols-2 gap-3">
         {BADGES.map((badge) => {
           const unlocked = badge.check(ctx)

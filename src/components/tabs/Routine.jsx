@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { todayStr, getWeekWindow } from '../../utils/dates'
+import { t } from '../../utils/i18n'
 
 const ICON_BG_COLORS = ['#fff8e6', '#e8f5ee', '#EEEDFE', '#E6F1FB', '#FAEEDA', '#FCEBEB']
+const DEFAULT_ICONS = ['⭐', '✅', '💪', '🎯', '📌', '🔑', '⚡', '🌟']
 
 // Mon-Fri day-of-week indices (JS: 0=Sun)
 const WEEKDAY_INDICES = [1, 2, 3, 4, 5]
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F']
-
-const DAY_ALL_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 const EMOJI_LIST = ['🏋️', '🧘', '🏃', '📚', '💧', '🥗', '😴', '⏰', '💻', '🎵', '🚴', '🧹', '✍️', '🎸', '🧠', '🌅', '💊', '🏊', '🤸', '🎯']
 
@@ -56,10 +55,10 @@ function offsetDate(base, offset) {
   return d.toISOString().split('T')[0]
 }
 
-function dateLabel(dateStr, today) {
-  if (dateStr === today) return 'Today'
+function dateLabel(dateStr, today, lang) {
+  if (dateStr === today) return t('today_label', lang)
   const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  return d.toLocaleDateString(t('locale', lang), { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 function EmojiPicker({ onSelect, onClose }) {
@@ -79,10 +78,11 @@ function EmojiPicker({ onSelect, onClose }) {
   )
 }
 
-export default function Routine({ routines, updateRoutines }) {
+export default function Routine({ routines, updateRoutines, lang }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [editingRoutine, setEditingRoutine] = useState(null)
   const [newHabit, setNewHabit] = useState('')
   const [newTime, setNewTime] = useState('')
   const [newEmoji, setNewEmoji] = useState('')
@@ -102,9 +102,42 @@ export default function Routine({ routines, updateRoutines }) {
     setSelectedDate(next)
   }
 
+  const isFormOpen = showAddForm || editingRoutine !== null
+  const isEditing = editingRoutine !== null
+
   useEffect(() => {
-    if (showAddForm) setTimeout(() => inputRef.current?.focus(), 50)
-  }, [showAddForm])
+    if (isFormOpen) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [isFormOpen])
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingRoutine) {
+      const emoji = extractEmoji(editingRoutine.name)
+      const name = emoji ? stripEmoji(editingRoutine.name) : editingRoutine.name
+      setNewEmoji(emoji || '')
+      setNewHabit(name)
+      setNewTime(editingRoutine.time || '')
+      setNewActiveDays(editingRoutine.activeDays || [1, 2, 3, 4, 5])
+    }
+  }, [editingRoutine])
+
+  const openAdd = () => {
+    setNewHabit('')
+    setNewTime('')
+    setNewEmoji('')
+    setNewActiveDays([1, 2, 3, 4, 5])
+    setEditingRoutine(null)
+    setShowAddForm(true)
+  }
+
+  const closeForm = () => {
+    setShowAddForm(false)
+    setEditingRoutine(null)
+    setNewHabit('')
+    setNewTime('')
+    setNewEmoji('')
+    setNewActiveDays([1, 2, 3, 4, 5])
+  }
 
   const selectedDayOfWeek = new Date(selectedDate + 'T12:00:00').getDay()
   const activeRoutines = routines.filter((r) => {
@@ -121,24 +154,33 @@ export default function Routine({ routines, updateRoutines }) {
 
   // Get Mon-Fri dates for the current week
   const weekDays = getWeekWindow(0)
-  const monFriDates = WEEKDAY_INDICES.map((dow) => weekDays[dow - 1]) // Mon=index0, Tue=1...
+  const monFriDates = WEEKDAY_INDICES.map((dow) => weekDays[dow - 1])
+  const weekMtwtf = t('week_mtwtf', lang)
+  const daySunSat = t('week_sun_sat', lang)
 
-  const addHabit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (!newHabit.trim()) return
-    const habit = {
-      id: crypto.randomUUID(),
-      name: (newEmoji ? newEmoji + ' ' : '') + newHabit.trim(),
-      time: newTime || null,
-      activeDays: newActiveDays,
-      completions: {},
+    const fullName = (newEmoji ? newEmoji + ' ' : '') + newHabit.trim()
+    if (isEditing) {
+      updateRoutines(
+        routines.map((r) =>
+          r.id === editingRoutine.id
+            ? { ...r, name: fullName, time: newTime || null, activeDays: newActiveDays }
+            : r
+        )
+      )
+    } else {
+      const habit = {
+        id: crypto.randomUUID(),
+        name: fullName,
+        time: newTime || null,
+        activeDays: newActiveDays,
+        completions: {},
+      }
+      updateRoutines([...routines, habit])
     }
-    updateRoutines([...routines, habit])
-    setNewHabit('')
-    setNewTime('')
-    setNewEmoji('')
-    setNewActiveDays([1, 2, 3, 4, 5])
-    setShowAddForm(false)
+    closeForm()
   }
 
   const toggleCompletion = (routineId) => {
@@ -162,8 +204,8 @@ export default function Routine({ routines, updateRoutines }) {
   return (
     <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">Routine</h1>
-        <p className="text-gray-400 text-xs mt-0.5">Daily habits to build consistency</p>
+        <h1 className="text-lg font-bold text-gray-900">{t('routine', lang)}</h1>
+        <p className="text-gray-400 text-xs mt-0.5">{t('routine_sub', lang)}</p>
       </div>
 
       {/* Date navigation */}
@@ -174,9 +216,9 @@ export default function Routine({ routines, updateRoutines }) {
         </button>
         <div className="text-center">
           <p className={`font-semibold text-sm ${isToday ? 'text-primary' : 'text-gray-800'}`}>
-            {dateLabel(selectedDate, today)}
+            {dateLabel(selectedDate, today, lang)}
           </p>
-          {isPast && <p className="text-[10px] text-gray-400 mt-0.5">Retroactive entry</p>}
+          {isPast && <p className="text-[10px] text-gray-400 mt-0.5">{t('retroactive', lang)}</p>}
         </div>
         <button onClick={() => navigateDay(1)} disabled={!canGoNext}
           className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-colors">
@@ -190,6 +232,7 @@ export default function Routine({ routines, updateRoutines }) {
           const isDone = routine.completions?.[selectedDate]
           const emoji = extractEmoji(routine.name)
           const displayName = emoji ? stripEmoji(routine.name) : routine.name
+          const iconContent = emoji || DEFAULT_ICONS[idx % DEFAULT_ICONS.length]
           const iconBg = ICON_BG_COLORS[idx % ICON_BG_COLORS.length]
           const rstreak = calcRoutineStreak(routine.completions)
 
@@ -206,12 +249,17 @@ export default function Routine({ routines, updateRoutines }) {
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                 style={{ backgroundColor: iconBg }}
               >
-                {emoji || displayName[0]?.toUpperCase()}
+                {iconContent}
               </div>
 
               {/* Body */}
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-gray-900 truncate mb-1.5">{displayName}</p>
+                <button
+                  className="font-semibold text-sm text-gray-900 truncate mb-1.5 text-left w-full hover:text-primary transition-colors"
+                  onClick={() => setEditingRoutine(routine)}
+                >
+                  {displayName}
+                </button>
                 {/* Progress bar */}
                 <div className="h-[3px] bg-gray-100 rounded-full overflow-hidden mb-2">
                   <div className="h-full rounded-full transition-all duration-500"
@@ -236,7 +284,7 @@ export default function Routine({ routines, updateRoutines }) {
                               : 'bg-gray-100 text-gray-400'
                           }`}
                         >
-                          {WEEKDAY_LABELS[i]}
+                          {weekMtwtf[i]}
                         </div>
                       )
                     })}
@@ -250,7 +298,6 @@ export default function Routine({ routines, updateRoutines }) {
               {/* Checkmark */}
               <button
                 onClick={() => toggleCompletion(routine.id)}
-                onLongPress={() => deleteRoutine(routine.id)}
                 className={`w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
                   isDone ? 'bg-success border-success' : isPast ? 'border-gray-200' : 'border-gray-300 hover:border-primary'
                 }`}
@@ -264,28 +311,30 @@ export default function Routine({ routines, updateRoutines }) {
         {/* Empty state if no active routines but routines exist */}
         {sortedRoutines.length === 0 && routines.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-100 py-8 text-center text-gray-400">
-            <p className="text-sm">No habits scheduled for this day.</p>
+            <p className="text-sm">{t('no_habits_day', lang)}</p>
           </div>
         )}
 
         {/* Dashed add row */}
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={openAdd}
           className="w-full bg-white rounded-xl border border-dashed border-gray-300 py-3 flex items-center justify-center gap-2 text-gray-400 hover:text-primary hover:border-primary transition-colors text-sm"
         >
           <span className="text-base">➕</span>
-          Add new habit...
+          {t('add_new_habit', lang)}
         </button>
       </div>
 
-      {/* Bottom sheet add form */}
-      {showAddForm && (
-        <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setShowAddForm(false)}>
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 pb-10 shadow-2xl"
+      {/* Floating modal (add / edit) */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4"
+          onClick={closeForm}>
+          <div className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
             onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <p className="font-semibold text-gray-800 text-sm mb-3">Add habit</p>
-            <form onSubmit={addHabit} className="space-y-3">
+            <p className="font-semibold text-gray-800 text-sm mb-3">
+              {isEditing ? t('edit_habit', lang) : t('add_habit', lang)}
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div className="flex gap-2">
                 <div className="relative flex-shrink-0">
                   <button type="button" onClick={() => setShowEmojiPicker((v) => !v)}
@@ -304,7 +353,7 @@ export default function Routine({ routines, updateRoutines }) {
                   type="text"
                   value={newHabit}
                   onChange={(e) => setNewHabit(e.target.value)}
-                  placeholder="Habit name..."
+                  placeholder={t('habit_placeholder', lang)}
                   className="flex-1 bg-gray-50 border border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
                 />
                 <input
@@ -315,9 +364,9 @@ export default function Routine({ routines, updateRoutines }) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 flex-shrink-0">Active:</span>
+                <span className="text-xs text-gray-400 flex-shrink-0">{t('active_label', lang)}</span>
                 <div className="flex gap-1">
-                  {DAY_ALL_LABELS.map((label, i) => (
+                  {daySunSat.map((label, i) => (
                     <button key={i} type="button" onClick={() => toggleActiveDay(i)}
                       className={`w-7 h-7 rounded-full text-[11px] font-semibold transition-colors ${
                         newActiveDays.includes(i) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'
@@ -327,14 +376,23 @@ export default function Routine({ routines, updateRoutines }) {
                   ))}
                 </div>
               </div>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => { deleteRoutine(editingRoutine.id); closeForm() }}
+                  className="w-full py-2 rounded-xl text-xs text-red-400 hover:bg-red-50 transition-colors"
+                >
+                  🗑️ Delete habit
+                </button>
+              )}
               <div className="flex gap-2">
-                <button type="button" onClick={() => setShowAddForm(false)}
+                <button type="button" onClick={closeForm}
                   className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium">
-                  Cancel
+                  {t('cancel', lang)}
                 </button>
                 <button type="submit" disabled={!newHabit.trim()}
                   className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors">
-                  Add
+                  {isEditing ? t('save', lang) : t('add', lang)}
                 </button>
               </div>
             </form>

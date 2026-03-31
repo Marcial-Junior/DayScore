@@ -12,9 +12,14 @@ export default {
           from: { transform: 'translateY(100%)' },
           to: { transform: 'translateY(0)' },
         },
+        'drop-in': {
+          from: { transform: 'translateY(-10px)', opacity: '0' },
+          to: { transform: 'translateY(0)', opacity: '1' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
+        'drop-in': 'drop-in 0.2s ease-out',
       },
     },
   },

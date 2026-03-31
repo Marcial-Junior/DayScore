@@ -35,7 +35,13 @@ function App() {
   const [mood, setMood] = useState({})
   const [routines, setRoutines] = useState([])
   const [toast, setToast] = useState(null)
+  const [lang, setLang] = useState(() => localStorage.getItem('ds_lang') || 'en')
   const saveTimer = useRef(null)
+
+  const handleLangChange = (l) => {
+    setLang(l)
+    localStorage.setItem('ds_lang', l)
+  }
 
   const userName = session?.user?.user_metadata?.name || session?.user?.email?.split('@')[0] || ''
   const streak = calcStreak(tasks, routines)
@@ -119,18 +125,20 @@ function App() {
             routines={routines}
             streak={streak}
             userName={userName}
+            lang={lang}
           />
         )
       case 'routine':
-        return <Routine routines={routines} updateRoutines={updateRoutines} />
+        return <Routine routines={routines} updateRoutines={updateRoutines} lang={lang} />
       case 'history':
-        return <History tasks={tasks} routines={routines} mood={mood} streak={streak} />
+        return <History tasks={tasks} routines={routines} mood={mood} streak={streak} lang={lang} />
       case 'awards':
         return (
           <Achievements
             tasks={tasks}
             routines={routines}
             streak={streak}
+            lang={lang}
           />
         )
       case 'settings':
@@ -140,6 +148,8 @@ function App() {
             tasks={tasks}
             mood={mood}
             routines={routines}
+            lang={lang}
+            onLangChange={handleLangChange}
             onSignOut={() => supabase.auth.signOut()}
           />
         )

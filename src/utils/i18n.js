@@ -1,0 +1,186 @@
+const translations = {
+  en: {
+    // General
+    cancel: 'Cancel',
+    add: 'Add',
+    save: 'Save',
+
+    // Today
+    good_morning: 'Good morning',
+    good_afternoon: 'Good afternoon',
+    good_evening: 'Good evening',
+    planning_ahead: '📅 Planning ahead',
+    past_day: '📖 Past day',
+    planned: 'Planned',
+    done: 'Done',
+    remaining: 'Remaining',
+    no_tasks: 'No tasks yet. Tap + to add one!',
+    how_feeling: 'How are you feeling?',
+    mood_that_day: 'Mood that day',
+    mood_labels: ['Rough', 'Okay', 'Good', 'Great', 'Amazing'],
+    add_task: 'Add task',
+    edit_task: 'Edit task',
+    task_placeholder: 'Task name...',
+    work: 'Work',
+    personal: 'Personal',
+    overdue: 'Overdue',
+    due_today: 'Due today',
+    tomorrow: 'Tomorrow',
+
+    // Week labels (Mon–Sun for strip, Sun–Sat for day picker)
+    week_mon_sun: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+    week_sun_sat: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    week_mtwtf: ['M', 'T', 'W', 'T', 'F'],
+    locale: 'en-US',
+    yday_label: 'Yday',
+    today_label: 'Today',
+
+    // Routine
+    routine: 'Routine',
+    routine_sub: 'Daily habits to build consistency',
+    retroactive: 'Retroactive entry',
+    no_habits_day: 'No habits scheduled for this day.',
+    no_habits_yet: 'No habits yet. Add your first habit!',
+    add_new_habit: 'Add new habit...',
+    add_habit: 'Add habit',
+    edit_habit: 'Edit habit',
+    habit_placeholder: 'Habit name...',
+    active_label: 'Active:',
+
+    // History
+    history: 'History',
+    history_sub: 'Last 7 days at a glance',
+    avg_score: 'Avg score',
+    active_days: 'Active days',
+    streak_label: 'Streak',
+    daily_score: 'Daily Score',
+    mood_week: 'Mood this week',
+    best_day_title: '🏆 Best day this week',
+    tasks_completed: (n) => `${n} task${n !== 1 ? 's' : ''} completed`,
+    great_score: 'Great score!',
+
+    // Awards
+    awards: 'Awards',
+    unlocked: 'unlocked',
+    streak_zero: 'Start your streak today!',
+    streak_one: '1 day streak — keep going!',
+    streak_many: (n) => `${n} day streak — keep it up!`,
+    next_milestone: 'Next milestone:',
+    days_unit: 'days',
+    achievements_label: 'Achievements',
+
+    // Settings
+    settings: 'Settings',
+    settings_sub: 'Personalize your experience',
+    tap_edit_profile: 'Tap to edit profile',
+    appearance: 'APPEARANCE',
+    dark_mode: 'Dark mode',
+    soon: 'Soon',
+    accent_color: 'Accent color',
+    language: 'Language',
+    notifications: 'NOTIFICATIONS',
+    daily_reminder: 'Daily reminder',
+    reminder_time: 'Reminder time',
+    data_section: 'DATA',
+    export_data: 'Export data',
+    reset_data: 'Reset all data',
+    resetting: 'Resetting...',
+    sign_out: 'Sign out',
+    reset_confirm: 'Reset all data? This will permanently delete all your tasks, mood entries, and habits. This cannot be undone.',
+  },
+
+  'pt-BR': {
+    // General
+    cancel: 'Cancelar',
+    add: 'Adicionar',
+    save: 'Salvar',
+
+    // Today
+    good_morning: 'Bom dia',
+    good_afternoon: 'Boa tarde',
+    good_evening: 'Boa noite',
+    planning_ahead: '📅 Planejando',
+    past_day: '📖 Dia anterior',
+    planned: 'Planejadas',
+    done: 'Feitas',
+    remaining: 'Restantes',
+    no_tasks: 'Sem tarefas. Toque + para adicionar!',
+    how_feeling: 'Como você está?',
+    mood_that_day: 'Humor naquele dia',
+    mood_labels: ['Difícil', 'Ok', 'Bem', 'Ótimo', 'Incrível'],
+    add_task: 'Nova tarefa',
+    edit_task: 'Editar tarefa',
+    task_placeholder: 'Nome da tarefa...',
+    work: 'Trabalho',
+    personal: 'Pessoal',
+    overdue: 'Atrasada',
+    due_today: 'Vence hoje',
+    tomorrow: 'Amanhã',
+
+    // Week labels
+    week_mon_sun: ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'],
+    week_sun_sat: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'],
+    week_mtwtf: ['S', 'T', 'Q', 'Q', 'S'],
+    locale: 'pt-BR',
+    yday_label: 'Ont',
+    today_label: 'Hoje',
+
+    // Routine
+    routine: 'Rotina',
+    routine_sub: 'Hábitos diários para consistência',
+    retroactive: 'Registro retroativo',
+    no_habits_day: 'Nenhum hábito para este dia.',
+    no_habits_yet: 'Sem hábitos. Adicione o primeiro!',
+    add_new_habit: 'Adicionar hábito...',
+    add_habit: 'Novo hábito',
+    edit_habit: 'Editar hábito',
+    habit_placeholder: 'Nome do hábito...',
+    active_label: 'Ativo:',
+
+    // History
+    history: 'Histórico',
+    history_sub: 'Últimos 7 dias',
+    avg_score: 'Média',
+    active_days: 'Dias ativos',
+    streak_label: 'Sequência',
+    daily_score: 'Pontuação Diária',
+    mood_week: 'Humor desta semana',
+    best_day_title: '🏆 Melhor dia',
+    tasks_completed: (n) => `${n} tarefa${n !== 1 ? 's' : ''} concluída${n !== 1 ? 's' : ''}`,
+    great_score: 'Ótima pontuação!',
+
+    // Awards
+    awards: 'Conquistas',
+    unlocked: 'desbloqueadas',
+    streak_zero: 'Comece sua sequência hoje!',
+    streak_one: '1 dia de sequência — continue!',
+    streak_many: (n) => `${n} dias de sequência — assim vai!`,
+    next_milestone: 'Próximo marco:',
+    days_unit: 'dias',
+    achievements_label: 'Conquistas',
+
+    // Settings
+    settings: 'Configurações',
+    settings_sub: 'Personalize sua experiência',
+    tap_edit_profile: 'Toque para editar perfil',
+    appearance: 'APARÊNCIA',
+    dark_mode: 'Modo escuro',
+    soon: 'Em breve',
+    accent_color: 'Cor de destaque',
+    language: 'Idioma',
+    notifications: 'NOTIFICAÇÕES',
+    daily_reminder: 'Lembrete diário',
+    reminder_time: 'Horário',
+    data_section: 'DADOS',
+    export_data: 'Exportar dados',
+    reset_data: 'Redefinir tudo',
+    resetting: 'Redefinindo...',
+    sign_out: 'Sair',
+    reset_confirm: 'Redefinir todos os dados? Isso vai excluir permanentemente todas as suas tarefas, humor e hábitos. Não pode ser desfeito.',
+  },
+}
+
+export function t(key, lang = 'en', ...args) {
+  const val = translations[lang]?.[key] ?? translations.en[key] ?? key
+  return typeof val === 'function' ? val(...args) : val
+}

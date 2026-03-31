@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { todayStr, formatDate, daysBetween, getWeekWindow } from '../../utils/dates'
 import { calcDayScore } from '../../utils/streak'
+import { t } from '../../utils/i18n'
 import ScoreRing from '../ui/ScoreRing'
 import ConfettiBurst from '../ui/ConfettiBurst'
 
 const MOODS = ['😔', '😐', '🙂', '😄', '🚀']
-const MOOD_LABELS = ['Rough', 'Okay', 'Good', 'Great', 'Amazing']
-const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 const Checkmark = () => (
   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -18,23 +17,28 @@ const XIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 )
+const PencilIcon = () => (
+  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z" />
+  </svg>
+)
 
-function greeting() {
+function greeting(lang) {
   const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (h < 12) return t('good_morning', lang)
+  if (h < 18) return t('good_afternoon', lang)
+  return t('good_evening', lang)
 }
 
 // daysBetween(dueDate, today): negative = overdue, 0 = today, positive = future
-function dueBadge(dueDate, done) {
+function dueBadge(dueDate, done, lang) {
   if (!dueDate || done) return null
   const diff = daysBetween(dueDate, todayStr())
-  if (diff < 0) return { label: 'Overdue', cls: 'bg-red-50 text-red-500 border border-red-200' }
-  if (diff === 0) return { label: 'Due today', cls: 'bg-amber-50 text-amber-600 border border-amber-200' }
-  if (diff === 1) return { label: 'Tomorrow', cls: 'bg-amber-50 text-amber-500 border border-amber-100' }
+  if (diff < 0) return { label: t('overdue', lang), cls: 'bg-red-50 text-red-500 border border-red-200' }
+  if (diff === 0) return { label: t('due_today', lang), cls: 'bg-amber-50 text-amber-600 border border-amber-200' }
+  if (diff === 1) return { label: t('tomorrow', lang), cls: 'bg-amber-50 text-amber-500 border border-amber-100' }
   const d = new Date(dueDate + 'T12:00:00')
-  const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const label = d.toLocaleDateString(t('locale', lang), { month: 'short', day: 'numeric' })
   return { label, cls: 'bg-gray-50 text-gray-400 border border-gray-200' }
 }
 
@@ -50,52 +54,91 @@ function catDotColor(category) {
   return 'bg-amber-300'
 }
 
-export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName }) {
+export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName, lang }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
   const [newTask, setNewTask] = useState('')
   const [newCategory, setNewCategory] = useState(null)
   const [newDueDate, setNewDueDate] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
   const [confettiOrigin, setConfettiOrigin] = useState(null)
   const [recentMood, setRecentMood] = useState(null)
   const inputRef = useRef(null)
+  const longPressTimer = useRef(null)
 
   const isToday = selectedDate === today
   const isFuture = selectedDate > today
   const dayTasks = tasks[selectedDate] || []
   const visibleTasks = [...dayTasks].sort((a, b) => urgencyScore(a) - urgencyScore(b))
   const score = calcDayScore(dayTasks)
-  const done = dayTasks.filter((t) => t.done).length
+  const done = dayTasks.filter((task) => task.done).length
   const remaining = dayTasks.length - done
   const todayMood = mood[selectedDate] ?? null
   const weekDays = getWeekWindow(0)
+  const weekLabels = t('week_mon_sun', lang)
+  const moodLabels = t('mood_labels', lang)
 
-  // Focus input when sheet opens
+  const isFormOpen = showAddForm || editingTask !== null
+
+  // Focus input when form opens
   useEffect(() => {
-    if (showAddForm) setTimeout(() => inputRef.current?.focus(), 50)
-  }, [showAddForm])
+    if (isFormOpen) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [isFormOpen])
 
-  const addTask = (e) => {
-    e.preventDefault()
-    if (!newTask.trim()) return
-    const task = {
-      id: crypto.randomUUID(),
-      text: newTask.trim(),
-      done: false,
-      isRoutine: false,
-      category: newCategory,
-      dueDate: newDueDate || null,
+  // Populate form when editing
+  useEffect(() => {
+    if (editingTask) {
+      setNewTask(editingTask.text)
+      setNewCategory(editingTask.category || null)
+      setNewDueDate(editingTask.dueDate || '')
     }
-    updateTasks({ ...tasks, [selectedDate]: [...dayTasks, task] })
+  }, [editingTask])
+
+  const openAdd = () => {
     setNewTask('')
     setNewCategory(null)
     setNewDueDate('')
+    setEditingTask(null)
+    setShowAddForm(true)
+  }
+
+  const closeForm = () => {
     setShowAddForm(false)
+    setEditingTask(null)
+    setNewTask('')
+    setNewCategory(null)
+    setNewDueDate('')
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!newTask.trim()) return
+    if (editingTask) {
+      updateTasks({
+        ...tasks,
+        [selectedDate]: dayTasks.map((task) =>
+          task.id === editingTask.id
+            ? { ...task, text: newTask.trim(), category: newCategory, dueDate: newDueDate || null }
+            : task
+        ),
+      })
+    } else {
+      const task = {
+        id: crypto.randomUUID(),
+        text: newTask.trim(),
+        done: false,
+        isRoutine: false,
+        category: newCategory,
+        dueDate: newDueDate || null,
+      }
+      updateTasks({ ...tasks, [selectedDate]: [...dayTasks, task] })
+    }
+    closeForm()
   }
 
   const toggleTask = (id, btnEl) => {
-    const task = dayTasks.find((t) => t.id === id)
+    const task = dayTasks.find((task) => task.id === id)
     if (task && !task.done && btnEl) {
       const rect = btnEl.getBoundingClientRect()
       setConfettiOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
@@ -103,12 +146,22 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     }
     updateTasks({
       ...tasks,
-      [selectedDate]: dayTasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+      [selectedDate]: dayTasks.map((task) => (task.id === id ? { ...task, done: !task.done } : task)),
     })
   }
 
   const deleteTask = (id) => {
-    updateTasks({ ...tasks, [selectedDate]: dayTasks.filter((t) => t.id !== id) })
+    updateTasks({ ...tasks, [selectedDate]: dayTasks.filter((task) => task.id !== id) })
+  }
+
+  const startLongPress = (task) => {
+    longPressTimer.current = setTimeout(() => {
+      setEditingTask(task)
+    }, 500)
+  }
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
   }
 
   const setTodayMood = (index) => {
@@ -121,6 +174,8 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     setNewCategory((prev) => (prev === cat ? null : cat))
   }
 
+  const isEditing = editingTask !== null
+
   return (
     <div className="space-y-3">
       <ConfettiBurst origin={confettiOrigin} />
@@ -130,7 +185,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         <div>
           {isToday ? (
             <>
-              <h1 className="text-lg font-bold text-gray-900">{greeting()}, {userName}!</h1>
+              <h1 className="text-lg font-bold text-gray-900">{greeting(lang)}, {userName}!</h1>
               <p className="text-gray-400 text-xs mt-0.5">{formatDate(today)}</p>
             </>
           ) : (
@@ -138,9 +193,9 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
               <h1 className="text-lg font-bold text-gray-900">{formatDate(selectedDate)}</h1>
               <p className="text-xs mt-0.5">
                 {isFuture ? (
-                  <span className="text-primary font-medium">📅 Planning ahead</span>
+                  <span className="text-primary font-medium">{t('planning_ahead', lang)}</span>
                 ) : (
-                  <span className="text-gray-400">📖 Past day</span>
+                  <span className="text-gray-400">{t('past_day', lang)}</span>
                 )}
               </p>
             </>
@@ -156,11 +211,11 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5">
         <div className="flex justify-between">
           {weekDays.map((date, i) => {
-            const isToday = date === today
+            const isThisToday = date === today
             const isSelected = date === selectedDate
             const dayNum = new Date(date + 'T12:00:00').getDate()
-            const dayTasks2 = tasks[date] || []
-            const hasDone = dayTasks2.some((t) => t.done)
+            const dayTasksForDate = tasks[date] || []
+            const hasDone = dayTasksForDate.some((task) => task.done)
 
             return (
               <button
@@ -168,10 +223,10 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                 onClick={() => setSelectedDate(date)}
                 className="flex flex-col items-center gap-1"
               >
-                <span className="text-[9px] text-gray-300 font-medium">{WEEK_LABELS[i]}</span>
+                <span className="text-[9px] text-gray-300 font-medium">{weekLabels[i]}</span>
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                    isSelected && isToday
+                    isSelected && isThisToday
                       ? 'bg-primary text-white'
                       : isSelected
                       ? 'ring-2 ring-primary text-primary'
@@ -198,15 +253,15 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         </div>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 px-4 py-3 flex flex-col justify-around">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">Planned</span>
+            <span className="text-[10px] text-gray-400">{t('planned', lang)}</span>
             <span className="text-xs font-semibold text-gray-800">{dayTasks.length}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">Done</span>
+            <span className="text-[10px] text-gray-400">{t('done', lang)}</span>
             <span className="text-xs font-semibold text-success">{done}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">Remaining</span>
+            <span className="text-[10px] text-gray-400">{t('remaining', lang)}</span>
             <span className={`text-xs font-semibold ${remaining > 0 ? 'text-red-400' : 'text-gray-400'}`}>
               {remaining}
             </span>
@@ -219,18 +274,22 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         {visibleTasks.length === 0 ? (
           <div className="py-8 text-center text-gray-400">
             <p className="text-3xl mb-2">📝</p>
-            <p className="text-sm">No tasks yet. Tap + to add one!</p>
+            <p className="text-sm">{t('no_tasks', lang)}</p>
           </div>
         ) : (
           <ul>
             {visibleTasks.map((task, i) => {
-              const badge = dueBadge(task.dueDate, task.done)
+              const badge = dueBadge(task.dueDate, task.done, lang)
               return (
                 <li
                   key={task.id}
                   className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-gray-50 ${
                     i < visibleTasks.length - 1 ? 'border-b border-gray-50' : ''
                   }`}
+                  onTouchStart={() => startLongPress(task)}
+                  onTouchEnd={cancelLongPress}
+                  onTouchMove={cancelLongPress}
+                  onMouseLeave={cancelLongPress}
                 >
                   <button
                     onClick={(e) => toggleTask(task.id, e.currentTarget)}
@@ -256,6 +315,12 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   </div>
                   <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${catDotColor(task.category)}`} />
                   <button
+                    onClick={() => setEditingTask(task)}
+                    className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-primary transition-all"
+                  >
+                    <PencilIcon />
+                  </button>
+                  <button
                     onClick={() => deleteTask(task.id)}
                     className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
                   >
@@ -272,7 +337,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
       {!isFuture && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
           <h2 className="text-[10px] text-gray-400 mb-2">
-            {isToday ? 'How are you feeling?' : 'Mood that day'}
+            {isToday ? t('how_feeling', lang) : t('mood_that_day', lang)}
           </h2>
           <div className="flex justify-around">
             {MOODS.map((emoji, i) => {
@@ -298,7 +363,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                       isSelected ? 'text-primary font-semibold' : 'text-gray-400'
                     }`}
                   >
-                    {MOOD_LABELS[i]}
+                    {moodLabels[i]}
                   </span>
                 </button>
               )
@@ -309,31 +374,32 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
       {/* FAB */}
       <button
-        onClick={() => setShowAddForm(true)}
+        onClick={openAdd}
         className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-2xl hover:bg-primary/90 transition-all active:scale-95"
       >
         +
       </button>
 
-      {/* Bottom sheet add form */}
-      {showAddForm && (
+      {/* Floating modal (add / edit) */}
+      {isFormOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/30"
-          onClick={() => setShowAddForm(false)}
+          className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4"
+          onClick={closeForm}
         >
           <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 pb-10 shadow-2xl animate-slide-up"
+            className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <p className="font-semibold text-gray-800 text-sm mb-3">Add task</p>
-            <form onSubmit={addTask} className="space-y-3">
+            <p className="font-semibold text-gray-800 text-sm mb-3">
+              {isEditing ? t('edit_task', lang) : t('add_task', lang)}
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-3">
               <input
                 ref={inputRef}
                 type="text"
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
-                placeholder="Task name..."
+                placeholder={t('task_placeholder', lang)}
                 className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
               />
               <div className="flex gap-2 flex-wrap items-center">
@@ -346,7 +412,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                       : 'border-gray-200 text-gray-400'
                   }`}
                 >
-                  💼 Work
+                  💼 {t('work', lang)}
                 </button>
                 <button
                   type="button"
@@ -357,7 +423,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                       : 'border-gray-200 text-gray-400'
                   }`}
                 >
-                  🏠 Personal
+                  🏠 {t('personal', lang)}
                 </button>
                 <input
                   type="date"
@@ -369,17 +435,17 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddForm(false)}
+                  onClick={closeForm}
                   className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium"
                 >
-                  Cancel
+                  {t('cancel', lang)}
                 </button>
                 <button
                   type="submit"
                   disabled={!newTask.trim()}
                   className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors"
                 >
-                  Add
+                  {isEditing ? t('save', lang) : t('add', lang)}
                 </button>
               </div>
             </form>
