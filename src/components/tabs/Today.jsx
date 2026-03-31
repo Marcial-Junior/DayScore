@@ -23,6 +23,12 @@ const PencilIcon = () => (
   </svg>
 )
 
+function offsetDate(base, offset) {
+  const d = new Date(base + 'T12:00:00')
+  d.setDate(d.getDate() + offset)
+  return d.toISOString().split('T')[0]
+}
+
 function greeting(lang) {
   const h = new Date().getHours()
   if (h < 12) return t('good_morning', lang)
@@ -54,6 +60,27 @@ function catDotColor(category) {
   return 'bg-amber-300'
 }
 
+// Returns tasks from OTHER dates whose dueDate === targetDate
+function getTasksDueOn(allTasks, targetDate) {
+  const stored = allTasks[targetDate] || []
+  const storedIds = new Set(stored.map((t) => t.id))
+  return Object.values(allTasks)
+    .flat()
+    .filter((task) => task.dueDate === targetDate && !storedIds.has(task.id))
+}
+
+function shortDate(dateStr, lang) {
+  const d = new Date(dateStr + 'T12:00:00')
+  return d.toLocaleDateString(t('locale', lang), { month: 'short', day: 'numeric' })
+}
+
+function taskSectionLabel(date, today, lang) {
+  if (date === today) return `${t('today_label', lang)} · ${shortDate(date, lang)}`
+  if (date === offsetDate(today, 1)) return `${t('tomorrow', lang)} · ${shortDate(date, lang)}`
+  const d = new Date(date + 'T12:00:00')
+  return d.toLocaleDateString(t('locale', lang), { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
 export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName, lang }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
@@ -69,11 +96,15 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
   const isToday = selectedDate === today
   const isFuture = selectedDate > today
+
+  // Tasks stored on selected date + tasks from other dates due on this date
   const dayTasks = tasks[selectedDate] || []
-  const visibleTasks = [...dayTasks].sort((a, b) => urgencyScore(a) - urgencyScore(b))
-  const score = calcDayScore(dayTasks)
-  const done = dayTasks.filter((task) => task.done).length
-  const remaining = dayTasks.length - done
+  const tasksDueHere = getTasksDueOn(tasks, selectedDate)
+  const allVisibleTasks = [...dayTasks, ...tasksDueHere].sort((a, b) => urgencyScore(a) - urgencyScore(b))
+
+  const score = calcDayScore(allVisibleTasks)
+  const done = allVisibleTasks.filter((task) => task.done).length
+  const remaining = allVisibleTasks.length - done
   const todayMood = mood[selectedDate] ?? null
   const weekDays = getWeekWindow(0)
   const weekLabels = t('week_mon_sun', lang)
@@ -115,14 +146,18 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     e.preventDefault()
     if (!newTask.trim()) return
     if (editingTask) {
-      updateTasks({
-        ...tasks,
-        [selectedDate]: dayTasks.map((task) =>
-          task.id === editingTask.id
-            ? { ...task, text: newTask.trim(), category: newCategory, dueDate: newDueDate || null }
-            : task
-        ),
-      })
+      // find which bucket stores this task
+      const storageDate = Object.keys(tasks).find((d) => tasks[d].some((task) => task.id === editingTask.id))
+      if (storageDate) {
+        updateTasks({
+          ...tasks,
+          [storageDate]: tasks[storageDate].map((task) =>
+            task.id === editingTask.id
+              ? { ...task, text: newTask.trim(), category: newCategory, dueDate: newDueDate || null }
+              : task
+          ),
+        })
+      }
     } else {
       const task = {
         id: crypto.randomUUID(),
@@ -138,7 +173,10 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   }
 
   const toggleTask = (id, btnEl) => {
-    const task = dayTasks.find((task) => task.id === id)
+    const storageDate = Object.keys(tasks).find((d) => tasks[d].some((task) => task.id === id))
+    if (!storageDate) return
+    const bucket = tasks[storageDate]
+    const task = bucket.find((task) => task.id === id)
     if (task && !task.done && btnEl) {
       const rect = btnEl.getBoundingClientRect()
       setConfettiOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
@@ -146,18 +184,21 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     }
     updateTasks({
       ...tasks,
-      [selectedDate]: dayTasks.map((task) => (task.id === id ? { ...task, done: !task.done } : task)),
+      [storageDate]: bucket.map((task) => (task.id === id ? { ...task, done: !task.done } : task)),
     })
   }
 
   const deleteTask = (id) => {
-    updateTasks({ ...tasks, [selectedDate]: dayTasks.filter((task) => task.id !== id) })
+    const storageDate = Object.keys(tasks).find((d) => tasks[d].some((task) => task.id === id))
+    if (!storageDate) return
+    updateTasks({
+      ...tasks,
+      [storageDate]: tasks[storageDate].filter((task) => task.id !== id),
+    })
   }
 
   const startLongPress = (task) => {
-    longPressTimer.current = setTimeout(() => {
-      setEditingTask(task)
-    }, 500)
+    longPressTimer.current = setTimeout(() => setEditingTask(task), 500)
   }
 
   const cancelLongPress = () => {
@@ -175,6 +216,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   }
 
   const isEditing = editingTask !== null
+  const sectionLabel = taskSectionLabel(selectedDate, today, lang)
 
   return (
     <div className="space-y-3">
@@ -191,12 +233,11 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
           ) : (
             <>
               <h1 className="text-lg font-bold text-gray-900">{formatDate(selectedDate)}</h1>
-              <p className="text-xs mt-0.5">
-                {isFuture ? (
-                  <span className="text-primary font-medium">{t('planning_ahead', lang)}</span>
-                ) : (
-                  <span className="text-gray-400">{t('past_day', lang)}</span>
-                )}
+              <p
+                className="text-xs mt-0.5 text-primary/70 cursor-pointer"
+                onClick={() => setSelectedDate(today)}
+              >
+                {t('tap_go_back', lang)}
               </p>
             </>
           )}
@@ -216,6 +257,10 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             const dayNum = new Date(date + 'T12:00:00').getDate()
             const dayTasksForDate = tasks[date] || []
             const hasDone = dayTasksForDate.some((task) => task.done)
+            // Amber dot: any task from any bucket with dueDate === date and not done
+            const hasDue = !hasDone && Object.values(tasks).flat().some(
+              (task) => task.dueDate === date && !task.done
+            )
 
             return (
               <button
@@ -238,7 +283,9 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   {dayNum}
                 </div>
                 <div
-                  className={`w-1 h-1 rounded-full ${hasDone ? 'bg-success' : 'bg-gray-200'}`}
+                  className={`w-1 h-1 rounded-full ${
+                    hasDone ? 'bg-success' : hasDue ? 'bg-amber-400' : 'bg-gray-200'
+                  }`}
                 />
               </button>
             )
@@ -254,7 +301,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 px-4 py-3 flex flex-col justify-around">
           <div className="flex justify-between items-center">
             <span className="text-[10px] text-gray-400">{t('planned', lang)}</span>
-            <span className="text-xs font-semibold text-gray-800">{dayTasks.length}</span>
+            <span className="text-xs font-semibold text-gray-800">{allVisibleTasks.length}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[10px] text-gray-400">{t('done', lang)}</span>
@@ -271,20 +318,24 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
       {/* Task list */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        {visibleTasks.length === 0 ? (
+        {/* Section label */}
+        <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100">
+          <p className="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">{sectionLabel}</p>
+        </div>
+        {allVisibleTasks.length === 0 ? (
           <div className="py-8 text-center text-gray-400">
-            <p className="text-3xl mb-2">📝</p>
+            <p className="text-3xl mb-2">📭</p>
             <p className="text-sm">{t('no_tasks', lang)}</p>
           </div>
         ) : (
           <ul>
-            {visibleTasks.map((task, i) => {
+            {allVisibleTasks.map((task, i) => {
               const badge = dueBadge(task.dueDate, task.done, lang)
               return (
                 <li
                   key={task.id}
                   className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-gray-50 ${
-                    i < visibleTasks.length - 1 ? 'border-b border-gray-50' : ''
+                    i < allVisibleTasks.length - 1 ? 'border-b border-gray-50' : ''
                   }`}
                   onTouchStart={() => startLongPress(task)}
                   onTouchEnd={cancelLongPress}

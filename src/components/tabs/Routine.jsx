@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { todayStr, getWeekWindow } from '../../utils/dates'
 import { t } from '../../utils/i18n'
 
@@ -8,7 +8,15 @@ const DEFAULT_ICONS = ['⭐', '✅', '💪', '🎯', '📌', '🔑', '⚡', '�
 // Mon-Fri day-of-week indices (JS: 0=Sun)
 const WEEKDAY_INDICES = [1, 2, 3, 4, 5]
 
-const EMOJI_LIST = ['🏋️', '🧘', '🏃', '📚', '💧', '🥗', '😴', '⏰', '💻', '🎵', '🚴', '🧹', '✍️', '🎸', '🧠', '🌅', '💊', '🏊', '🤸', '🎯']
+const EMOJI_BY_CATEGORY = {
+  Health: ['⏰', '🏃', '🧘', '💧', '🥗', '😴', '🏋️', '🚴', '💊', '🫁', '🚿', '🦷'],
+  Work:   ['💼', '📧', '💰', '🎯', '📊', '📝', '✍️', '💻', '📞', '🗂️'],
+  Mind:   ['🧠', '📚', '🙏', '🎵', '🎨', '📖', '🌿', '🧩', '✨'],
+  Home:   ['🏠', '🧹', '🍳', '🛒', '🐶', '🌱', '☕'],
+  Fun:    ['🎮', '🎸', '⚽', '🏊', '🎬', '🎤'],
+}
+const ALL_EMOJIS = Object.values(EMOJI_BY_CATEGORY).flat()
+const CATEGORIES = ['All', ...Object.keys(EMOJI_BY_CATEGORY)]
 
 function extractEmoji(name) {
   const match = name.match(/^\p{Emoji_Presentation}/u) || name.match(/^\p{Emoji}\uFE0F/u) || name.match(/^[\u{1F300}-\u{1FAFF}]/u)
@@ -30,6 +38,14 @@ function calcRoutineStreak(completions) {
     d = prev.toISOString().split('T')[0]
   }
   return streak
+}
+
+function formatTime(time) {
+  if (!time) return ''
+  const [h, m] = time.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
 const Checkmark = () => (
@@ -61,19 +77,60 @@ function dateLabel(dateStr, today, lang) {
   return d.toLocaleDateString(t('locale', lang), { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-function EmojiPicker({ onSelect, onClose }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [onClose])
+function ExpandedEmojiPicker({ selected, onSelect }) {
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('All')
+
+  const baseList = category === 'All' ? ALL_EMOJIS : (EMOJI_BY_CATEGORY[category] || [])
+  const filtered = search.trim()
+    ? baseList.filter((e) => e.includes(search.trim()))
+    : baseList
+
   return (
-    <div ref={ref} className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-2 grid grid-cols-5 gap-1 w-44">
-      {EMOJI_LIST.map((em) => (
-        <button key={em} type="button" onClick={() => onSelect(em)}
-          className="text-xl hover:bg-gray-100 rounded-lg p-1 transition-colors">{em}</button>
-      ))}
+    <div className="mt-2 bg-gray-50 rounded-xl p-3 border border-gray-100">
+      <p className="text-[10px] font-semibold text-gray-700 mb-2">Choose an icon</p>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="🔍  Search emoji..."
+        className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-2"
+      />
+      <div className="flex gap-1.5 overflow-x-auto pb-1 mb-2 scrollbar-hide">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setCategory(cat)}
+            className={`text-[9px] px-2.5 py-1 rounded-full font-semibold whitespace-nowrap flex-shrink-0 transition-colors ${
+              category === cat
+                ? 'bg-primary text-white'
+                : 'bg-primary/10 text-primary hover:bg-primary/20'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {filtered.map((em) => (
+          <button
+            key={em}
+            type="button"
+            onClick={() => onSelect(em)}
+            className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${
+              selected === em
+                ? 'bg-primary/10 outline outline-2 outline-primary'
+                : 'hover:bg-gray-200'
+            }`}
+          >
+            {em}
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <p className="col-span-7 text-center text-[10px] text-gray-400 py-2">No results</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -88,7 +145,6 @@ export default function Routine({ routines, updateRoutines, lang }) {
   const [newEmoji, setNewEmoji] = useState('')
   const [newActiveDays, setNewActiveDays] = useState([1, 2, 3, 4, 5])
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const inputRef = useRef(null)
 
   const isPast = selectedDate < today
   const isToday = selectedDate === today
@@ -104,10 +160,6 @@ export default function Routine({ routines, updateRoutines, lang }) {
 
   const isFormOpen = showAddForm || editingRoutine !== null
   const isEditing = editingRoutine !== null
-
-  useEffect(() => {
-    if (isFormOpen) setTimeout(() => inputRef.current?.focus(), 50)
-  }, [isFormOpen])
 
   // Populate form when editing
   useEffect(() => {
@@ -126,6 +178,7 @@ export default function Routine({ routines, updateRoutines, lang }) {
     setNewTime('')
     setNewEmoji('')
     setNewActiveDays([1, 2, 3, 4, 5])
+    setShowEmojiPicker(false)
     setEditingRoutine(null)
     setShowAddForm(true)
   }
@@ -137,6 +190,7 @@ export default function Routine({ routines, updateRoutines, lang }) {
     setNewTime('')
     setNewEmoji('')
     setNewActiveDays([1, 2, 3, 4, 5])
+    setShowEmojiPicker(false)
   }
 
   const selectedDayOfWeek = new Date(selectedDate + 'T12:00:00').getDay()
@@ -236,11 +290,9 @@ export default function Routine({ routines, updateRoutines, lang }) {
           const iconBg = ICON_BG_COLORS[idx % ICON_BG_COLORS.length]
           const rstreak = calcRoutineStreak(routine.completions)
 
-          // Week progress (Mon-Fri)
+          // Week dots (Mon-Fri)
           const doneThisWeek = monFriDates.filter((d) => d <= today && routine.completions?.[d]).length
           const totalThisWeek = monFriDates.filter((d) => d <= today).length
-          const pct = totalThisWeek > 0 ? Math.round((doneThisWeek / totalThisWeek) * 100) : 0
-          const barColor = pct >= 80 ? '#1D9E75' : pct >= 50 ? '#534AB7' : '#EF9F27'
 
           return (
             <div key={routine.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-3">
@@ -255,18 +307,16 @@ export default function Routine({ routines, updateRoutines, lang }) {
               {/* Body */}
               <div className="flex-1 min-w-0">
                 <button
-                  className="font-semibold text-sm text-gray-900 truncate mb-1.5 text-left w-full hover:text-primary transition-colors"
+                  className="font-semibold text-sm text-gray-900 truncate text-left w-full hover:text-primary transition-colors"
                   onClick={() => setEditingRoutine(routine)}
                 >
                   {displayName}
                 </button>
-                {/* Progress bar */}
-                <div className="h-[3px] bg-gray-100 rounded-full overflow-hidden mb-2">
-                  <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%`, backgroundColor: barColor }} />
-                </div>
+                {routine.time && (
+                  <p className="text-xs font-bold text-primary mb-1.5">{formatTime(routine.time)}</p>
+                )}
                 {/* Day dots + streak */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-1">
                   <div className="flex gap-1">
                     {monFriDates.map((date, i) => {
                       const isThisToday = date === today
@@ -327,34 +377,28 @@ export default function Routine({ routines, updateRoutines, lang }) {
 
       {/* Floating modal (add / edit) */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4"
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-10 px-4 overflow-y-auto"
           onClick={closeForm}>
-          <div className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
+          <div className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in my-4"
             onClick={(e) => e.stopPropagation()}>
             <p className="font-semibold text-gray-800 text-sm mb-3">
               {isEditing ? t('edit_habit', lang) : t('add_habit', lang)}
             </p>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="flex gap-2">
-                <div className="relative flex-shrink-0">
-                  <button type="button" onClick={() => setShowEmojiPicker((v) => !v)}
-                    className="w-10 h-10 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg text-xl hover:bg-gray-100 transition-colors">
-                    {newEmoji || '😊'}
-                  </button>
-                  {showEmojiPicker && (
-                    <EmojiPicker
-                      onSelect={(em) => { setNewEmoji(em); setShowEmojiPicker(false) }}
-                      onClose={() => setShowEmojiPicker(false)}
-                    />
-                  )}
-                </div>
+                <button type="button" onClick={() => setShowEmojiPicker((v) => !v)}
+                  className={`w-10 h-10 flex items-center justify-center bg-gray-50 border rounded-lg text-xl hover:bg-gray-100 transition-colors flex-shrink-0 ${
+                    showEmojiPicker ? 'border-primary' : 'border-gray-200'
+                  }`}>
+                  {newEmoji || '😊'}
+                </button>
                 <input
-                  ref={inputRef}
                   type="text"
                   value={newHabit}
                   onChange={(e) => setNewHabit(e.target.value)}
                   placeholder={t('habit_placeholder', lang)}
                   className="flex-1 bg-gray-50 border border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+                  autoFocus
                 />
                 <input
                   type="time"
@@ -363,6 +407,14 @@ export default function Routine({ routines, updateRoutines, lang }) {
                   className="w-20 bg-gray-50 border border-transparent rounded-xl px-2 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 flex-shrink-0"
                 />
               </div>
+
+              {showEmojiPicker && (
+                <ExpandedEmojiPicker
+                  selected={newEmoji}
+                  onSelect={(em) => { setNewEmoji(em); setShowEmojiPicker(false) }}
+                />
+              )}
+
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 flex-shrink-0">{t('active_label', lang)}</span>
                 <div className="flex gap-1">

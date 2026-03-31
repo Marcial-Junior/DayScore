@@ -87,6 +87,7 @@ const translations = {
     resetting: 'Resetting...',
     sign_out: 'Sign out',
     reset_confirm: 'Reset all data? This will permanently delete all your tasks, mood entries, and habits. This cannot be undone.',
+    tap_go_back: 'Tap today to go back',
   },
 
   'pt-BR': {
@@ -177,6 +178,7 @@ const translations = {
     resetting: 'Redefinindo...',
     sign_out: 'Sair',
     reset_confirm: 'Redefinir todos os dados? Isso vai excluir permanentemente todas as suas tarefas, humor e hábitos. Não pode ser desfeito.',
+    tap_go_back: 'Toque para voltar',
   },
 }
 
