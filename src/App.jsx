@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
-import { get, set, KEYS } from './utils/storage'
+import { useState, useEffect, useRef } from 'react'
+import { supabase, loadUserData, saveUserData } from './utils/supabase'
+import { set, KEYS } from './utils/storage'
 import { calcStreak } from './utils/streak'
 import { BADGES } from './utils/achievements'
-import NameModal from './components/NameModal'
+import AuthScreen from './components/AuthScreen'
 import Layout from './components/Layout'
 import Today from './components/tabs/Today'
 import Routine from './components/tabs/Routine'
@@ -13,50 +14,83 @@ import AchievementToast from './components/ui/AchievementToast'
 const SEEN_KEY = 'ds_seen_achievements'
 
 function App() {
+  const [session, setSession] = useState(undefined) // undefined = loading
   const [activeTab, setActiveTab] = useState('today')
-  const [userName, setUserName] = useState(() => get(KEYS.NAME, ''))
-  const [tasks, setTasks] = useState(() => get(KEYS.TASKS, {}))
-  const [mood, setMood] = useState(() => get(KEYS.MOOD, {}))
-  const [routines, setRoutines] = useState(() => get(KEYS.ROUTINES, []))
+  const [tasks, setTasks] = useState({})
+  const [mood, setMood] = useState({})
+  const [routines, setRoutines] = useState([])
   const [toast, setToast] = useState(null)
+  const saveTimer = useRef(null)
 
+  const userName = session?.user?.user_metadata?.name || session?.user?.email?.split('@')[0] || ''
   const streak = calcStreak(tasks, routines)
 
-  // Detect newly unlocked achievements and show toast
+  // Auth listener
   useEffect(() => {
-    const seen = get(SEEN_KEY, [])
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Load data when session starts
+  useEffect(() => {
+    if (!session) return
+    loadUserData(session.user.id).then((data) => {
+      setTasks(data.tasks || {})
+      setMood(data.mood || {})
+      setRoutines(data.routines || [])
+    })
+  }, [session?.user?.id])
+
+  // Debounced save to Supabase
+  const scheduleSave = (patch) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      if (session) saveUserData(session.user.id, patch)
+    }, 800)
+  }
+
+  const updateTasks = (newTasks) => {
+    setTasks(newTasks)
+    scheduleSave({ tasks: newTasks })
+  }
+  const updateMood = (newMood) => {
+    setMood(newMood)
+    scheduleSave({ mood: newMood })
+  }
+  const updateRoutines = (newRoutines) => {
+    setRoutines(newRoutines)
+    scheduleSave({ routines: newRoutines })
+  }
+
+  // Achievement detection
+  useEffect(() => {
+    if (!session) return
+    const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')
     const ctx = { tasks, routines, streak }
     const unlocked = BADGES.filter((b) => b.check(ctx)).map((b) => b.id)
     const newOnes = unlocked.filter((id) => !seen.includes(id))
-
     if (newOnes.length > 0) {
       const badge = BADGES.find((b) => b.id === newOnes[0])
       if (badge) {
         setToast(badge)
-        set(SEEN_KEY, [...seen, ...newOnes])
+        localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, ...newOnes]))
       }
     }
-  }, [streak, tasks, routines])
+  }, [streak, tasks, routines, session])
 
-  const handleNameSave = (name) => {
-    set(KEYS.NAME, name)
-    setUserName(name)
+  // Loading state
+  if (session === undefined) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-4xl animate-pulse">⚡</div>
+      </div>
+    )
   }
 
-  const updateTasks = (newTasks) => {
-    set(KEYS.TASKS, newTasks)
-    setTasks(newTasks)
-  }
-
-  const updateMood = (newMood) => {
-    set(KEYS.MOOD, newMood)
-    setMood(newMood)
-  }
-
-  const updateRoutines = (newRoutines) => {
-    set(KEYS.ROUTINES, newRoutines)
-    setRoutines(newRoutines)
-  }
+  if (!session) return <AuthScreen />
 
   const renderTab = () => {
     switch (activeTab) {
@@ -77,7 +111,14 @@ function App() {
       case 'history':
         return <History tasks={tasks} routines={routines} />
       case 'achievements':
-        return <Achievements tasks={tasks} routines={routines} streak={streak} />
+        return (
+          <Achievements
+            tasks={tasks}
+            routines={routines}
+            streak={streak}
+            onSignOut={() => supabase.auth.signOut()}
+          />
+        )
       default:
         return null
     }
@@ -85,7 +126,6 @@ function App() {
 
   return (
     <>
-      {!userName && <NameModal onSave={handleNameSave} />}
       <AchievementToast achievement={toast} onDismiss={() => setToast(null)} />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
         {renderTab()}

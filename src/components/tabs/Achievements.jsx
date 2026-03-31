@@ -20,7 +20,7 @@ function exportData() {
   URL.revokeObjectURL(url)
 }
 
-export default function Achievements({ tasks, routines, streak }) {
+export default function Achievements({ tasks, routines, streak, onSignOut }) {
   const fileRef = useRef(null)
   const [importMsg, setImportMsg] = useState(null)
 
@@ -145,6 +145,15 @@ export default function Achievements({ tasks, routines, streak }) {
           )
         })}
       </div>
+      {/* Sign out */}
+      {onSignOut && (
+        <button
+          onClick={onSignOut}
+          className="w-full py-2.5 text-sm text-gray-400 hover:text-red-400 transition-colors border border-gray-100 rounded-xl"
+        >
+          Sign out
+        </button>
+      )}
     </div>
   )
 }
