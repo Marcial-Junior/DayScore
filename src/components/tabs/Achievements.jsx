@@ -1,6 +1,48 @@
+import { useRef, useState } from 'react'
 import { BADGES } from '../../utils/achievements'
+import { get, set, KEYS } from '../../utils/storage'
+
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    name: get(KEYS.NAME, ''),
+    tasks: get(KEYS.TASKS, {}),
+    mood: get(KEYS.MOOD, {}),
+    routines: get(KEYS.ROUTINES, []),
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `dayscore-backup-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export default function Achievements({ tasks, routines, streak }) {
+  const fileRef = useRef(null)
+  const [importMsg, setImportMsg] = useState(null)
+
+  const handleImport = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result)
+        if (data.tasks) set(KEYS.TASKS, data.tasks)
+        if (data.mood) set(KEYS.MOOD, data.mood)
+        if (data.routines) set(KEYS.ROUTINES, data.routines)
+        if (data.name) set(KEYS.NAME, data.name)
+        setImportMsg('Backup restored! Reloading...')
+        setTimeout(() => window.location.reload(), 1200)
+      } catch {
+        setImportMsg('Invalid file. Please use a DayScore backup.')
+      }
+    }
+    reader.readAsText(file)
+  }
   const ctx = { tasks, routines, streak }
   const unlockedCount = BADGES.filter((b) => b.check(ctx)).length
 
@@ -44,6 +86,32 @@ export default function Achievements({ tasks, routines, streak }) {
             style={{ width: `${(unlockedCount / BADGES.length) * 100}%` }}
           />
         </div>
+      </div>
+
+      {/* Backup / Restore */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <h2 className="font-semibold text-gray-900 text-sm mb-1">Data Backup</h2>
+        <p className="text-xs text-gray-400 mb-3">Export your data to a file or restore from a previous backup.</p>
+        <div className="flex gap-2">
+          <button
+            onClick={exportData}
+            className="flex-1 flex items-center justify-center gap-2 bg-primary text-white rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            ⬇ Export
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-200 transition-colors"
+          >
+            ⬆ Import
+          </button>
+          <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+        </div>
+        {importMsg && (
+          <p className={`text-xs mt-2 text-center font-medium ${importMsg.includes('Restored') || importMsg.includes('restored') ? 'text-success' : 'text-red-500'}`}>
+            {importMsg}
+          </p>
+        )}
       </div>
 
       {/* Badge grid */}
