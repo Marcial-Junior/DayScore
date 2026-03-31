@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { todayStr, formatDate, daysBetween } from '../../utils/dates'
+import { useState, useRef, useEffect } from 'react'
+import { todayStr, formatDate, daysBetween, getWeekWindow } from '../../utils/dates'
 import { calcDayScore } from '../../utils/streak'
-import DateStrip from '../ui/DateStrip'
 import ScoreRing from '../ui/ScoreRing'
 import ConfettiBurst from '../ui/ConfettiBurst'
 
 const MOODS = ['😔', '😐', '🙂', '😄', '🚀']
 const MOOD_LABELS = ['Rough', 'Okay', 'Good', 'Great', 'Amazing']
+const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 const Checkmark = () => (
   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -38,33 +38,43 @@ function dueBadge(dueDate, done) {
   return { label, cls: 'bg-gray-50 text-gray-400 border border-gray-200' }
 }
 
-// Sort: overdue (most negative diff first) → today → future → no date → done
 function urgencyScore(task) {
   if (task.done) return 9999
   if (!task.dueDate) return 1000
-  return daysBetween(task.dueDate, todayStr()) // negative = overdue, 0 = today, positive = future
+  return daysBetween(task.dueDate, todayStr())
+}
+
+function catDotColor(category) {
+  if (category === 'work') return 'bg-primary'
+  if (category === 'personal') return 'bg-success'
+  return 'bg-amber-300'
 }
 
 export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
-  const [weekOffset, setWeekOffset] = useState(0)
   const [newTask, setNewTask] = useState('')
   const [newCategory, setNewCategory] = useState(null)
   const [newDueDate, setNewDueDate] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [showAddForm, setShowAddForm] = useState(false)
   const [confettiOrigin, setConfettiOrigin] = useState(null)
   const [recentMood, setRecentMood] = useState(null)
+  const inputRef = useRef(null)
 
   const isToday = selectedDate === today
   const isFuture = selectedDate > today
   const dayTasks = tasks[selectedDate] || []
-  const filteredTasks =
-    categoryFilter === 'all' ? dayTasks : dayTasks.filter((t) => t.category === categoryFilter)
-  const visibleTasks = [...filteredTasks].sort((a, b) => urgencyScore(a) - urgencyScore(b))
+  const visibleTasks = [...dayTasks].sort((a, b) => urgencyScore(a) - urgencyScore(b))
   const score = calcDayScore(dayTasks)
   const done = dayTasks.filter((t) => t.done).length
+  const remaining = dayTasks.length - done
   const todayMood = mood[selectedDate] ?? null
+  const weekDays = getWeekWindow(0)
+
+  // Focus input when sheet opens
+  useEffect(() => {
+    if (showAddForm) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [showAddForm])
 
   const addTask = (e) => {
     e.preventDefault()
@@ -81,6 +91,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     setNewTask('')
     setNewCategory(null)
     setNewDueDate('')
+    setShowAddForm(false)
   }
 
   const toggleTask = (id, btnEl) => {
@@ -111,7 +122,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <ConfettiBurst origin={confettiOrigin} />
 
       {/* Header */}
@@ -119,13 +130,13 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         <div>
           {isToday ? (
             <>
-              <h1 className="text-2xl font-bold text-gray-900">{greeting()}, {userName}!</h1>
-              <p className="text-gray-400 text-sm mt-0.5">{formatDate(today)}</p>
+              <h1 className="text-lg font-bold text-gray-900">{greeting()}, {userName}!</h1>
+              <p className="text-gray-400 text-xs mt-0.5">{formatDate(today)}</p>
             </>
           ) : (
             <>
-              <h1 className="text-xl font-bold text-gray-900">{formatDate(selectedDate)}</h1>
-              <p className="text-sm mt-0.5">
+              <h1 className="text-lg font-bold text-gray-900">{formatDate(selectedDate)}</h1>
+              <p className="text-xs mt-0.5">
                 {isFuture ? (
                   <span className="text-primary font-medium">📅 Planning ahead</span>
                 ) : (
@@ -135,123 +146,80 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             </>
           )}
         </div>
-        <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5 flex-shrink-0">
-          <span className="text-base">🔥</span>
-          <span className="font-bold text-amber-600 text-sm">{streak}</span>
+        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 flex-shrink-0">
+          <span className="text-sm">🔥</span>
+          <span className="font-bold text-amber-600 text-xs">{streak}</span>
         </div>
       </div>
 
-      {/* Date strip */}
-      <DateStrip
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-        weekOffset={weekOffset}
-        onChangeWeek={setWeekOffset}
-        tasks={tasks}
-      />
+      {/* Compact week strip */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5">
+        <div className="flex justify-between">
+          {weekDays.map((date, i) => {
+            const isToday = date === today
+            const isSelected = date === selectedDate
+            const dayNum = new Date(date + 'T12:00:00').getDate()
+            const dayTasks2 = tasks[date] || []
+            const hasDone = dayTasks2.some((t) => t.done)
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
-          <p className="text-2xl font-bold text-gray-800">{dayTasks.length}</p>
-          <p className="text-xs text-gray-400 mt-1">Planned</p>
+            return (
+              <button
+                key={date}
+                onClick={() => setSelectedDate(date)}
+                className="flex flex-col items-center gap-1"
+              >
+                <span className="text-[9px] text-gray-300 font-medium">{WEEK_LABELS[i]}</span>
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                    isSelected && isToday
+                      ? 'bg-primary text-white'
+                      : isSelected
+                      ? 'ring-2 ring-primary text-primary'
+                      : hasDone
+                      ? 'text-success'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {dayNum}
+                </div>
+                <div
+                  className={`w-1 h-1 rounded-full ${hasDone ? 'bg-success' : 'bg-gray-200'}`}
+                />
+              </button>
+            )
+          })}
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
-          <p className="text-2xl font-bold text-success">{done}</p>
-          <p className="text-xs text-gray-400 mt-1">Done</p>
+      </div>
+
+      {/* Stats: ring + mini stats */}
+      <div className="flex gap-3">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center p-3 flex-shrink-0">
+          <ScoreRing score={score} size={56} strokeWidth={5} />
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center p-2">
-          <ScoreRing score={score} size={68} strokeWidth={6} />
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 px-4 py-3 flex flex-col justify-around">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-gray-400">Planned</span>
+            <span className="text-xs font-semibold text-gray-800">{dayTasks.length}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-gray-400">Done</span>
+            <span className="text-xs font-semibold text-success">{done}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-gray-400">Remaining</span>
+            <span className={`text-xs font-semibold ${remaining > 0 ? 'text-red-400' : 'text-gray-400'}`}>
+              {remaining}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Task list */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-50">
-          <h2 className="font-semibold text-gray-900 text-sm">Tasks</h2>
-        </div>
-
-        {/* Add task form */}
-        <form onSubmit={addTask} className="p-3 border-b border-gray-50 space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="Add a task..."
-              className="flex-1 bg-gray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
-            />
-            <button
-              type="submit"
-              disabled={!newTask.trim()}
-              className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors flex-shrink-0"
-            >
-              Add
-            </button>
-          </div>
-          <div className="flex gap-2 flex-wrap items-center">
-            <button
-              type="button"
-              onClick={() => toggleNewCategory('work')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                newCategory === 'work'
-                  ? 'bg-amber-50 border-amber-400 text-amber-700'
-                  : 'border-gray-200 text-gray-400 hover:border-gray-300'
-              }`}
-            >
-              💼 Work
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleNewCategory('personal')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                newCategory === 'personal'
-                  ? 'bg-emerald-50 border-success text-success'
-                  : 'border-gray-200 text-gray-400 hover:border-gray-300'
-              }`}
-            >
-              🏠 Personal
-            </button>
-            <input
-              type="date"
-              value={newDueDate}
-              onChange={(e) => setNewDueDate(e.target.value)}
-              className="px-3 py-1 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 cursor-pointer"
-              title="Due date (optional)"
-            />
-          </div>
-        </form>
-
-        {/* Category filter */}
-        {dayTasks.length > 0 && (
-          <div className="flex gap-2 px-3 py-2 border-b border-gray-50">
-            {['all', 'work', 'personal'].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  categoryFilter === cat
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-              >
-                {cat === 'all' ? 'All' : cat === 'work' ? '💼 Work' : '🏠 Personal'}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Task items */}
         {visibleTasks.length === 0 ? (
           <div className="py-8 text-center text-gray-400">
-            {dayTasks.length === 0 ? (
-              <>
-                <p className="text-3xl mb-2">📝</p>
-                <p className="text-sm">No tasks yet. Add one above!</p>
-              </>
-            ) : (
-              <p className="text-sm">No {categoryFilter} tasks.</p>
-            )}
+            <p className="text-3xl mb-2">📝</p>
+            <p className="text-sm">No tasks yet. Tap + to add one!</p>
           </div>
         ) : (
           <ul>
@@ -286,21 +254,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                       </span>
                     )}
                   </div>
-                  {task.category === 'work' && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">
-                      💼
-                    </span>
-                  )}
-                  {task.category === 'personal' && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-success border border-emerald-200 flex-shrink-0">
-                      🏠
-                    </span>
-                  )}
-                  {task.isRoutine && (
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
-                      routine
-                    </span>
-                  )}
+                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${catDotColor(task.category)}`} />
                   <button
                     onClick={() => deleteTask(task.id)}
                     className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
@@ -316,32 +270,31 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
       {/* Mood selector */}
       {!isFuture && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <h2 className="font-semibold text-gray-900 text-sm mb-3">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+          <h2 className="text-[10px] text-gray-400 mb-2">
             {isToday ? 'How are you feeling?' : 'Mood that day'}
           </h2>
           <div className="flex justify-around">
             {MOODS.map((emoji, i) => {
               const isSelected = todayMood === i
-              const otherSelected = todayMood !== null && todayMood !== i
               return (
                 <button
                   key={i}
                   onClick={() => setTodayMood(i)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 relative ${
-                    isSelected
-                      ? 'bg-primary/10 scale-125'
-                      : otherSelected
-                      ? 'opacity-50 scale-90'
-                      : 'hover:bg-gray-50 scale-100'
-                  }`}
+                  className="flex flex-col items-center gap-1 relative"
                 >
                   {recentMood === i && (
-                    <span className="absolute inset-0 rounded-xl animate-ping bg-primary/20 pointer-events-none" />
+                    <span className="absolute inset-0 rounded-full animate-ping bg-primary/20 pointer-events-none" />
                   )}
-                  <span className="text-2xl">{emoji}</span>
                   <span
-                    className={`text-[10px] ${
+                    className={`text-xl transition-all ${
+                      isSelected ? 'bg-primary/10 rounded-full p-1' : 'p-1'
+                    }`}
+                  >
+                    {emoji}
+                  </span>
+                  <span
+                    className={`text-[9px] ${
                       isSelected ? 'text-primary font-semibold' : 'text-gray-400'
                     }`}
                   >
@@ -350,6 +303,86 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                 </button>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* FAB */}
+      <button
+        onClick={() => setShowAddForm(true)}
+        className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-2xl hover:bg-primary/90 transition-all active:scale-95"
+      >
+        +
+      </button>
+
+      {/* Bottom sheet add form */}
+      {showAddForm && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30"
+          onClick={() => setShowAddForm(false)}
+        >
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 pb-10 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <p className="font-semibold text-gray-800 text-sm mb-3">Add task</p>
+            <form onSubmit={addTask} className="space-y-3">
+              <input
+                ref={inputRef}
+                type="text"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                placeholder="Task name..."
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
+              />
+              <div className="flex gap-2 flex-wrap items-center">
+                <button
+                  type="button"
+                  onClick={() => toggleNewCategory('work')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    newCategory === 'work'
+                      ? 'bg-amber-50 border-amber-400 text-amber-700'
+                      : 'border-gray-200 text-gray-400'
+                  }`}
+                >
+                  💼 Work
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleNewCategory('personal')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    newCategory === 'personal'
+                      ? 'bg-emerald-50 border-success text-success'
+                      : 'border-gray-200 text-gray-400'
+                  }`}
+                >
+                  🏠 Personal
+                </button>
+                <input
+                  type="date"
+                  value={newDueDate}
+                  onChange={(e) => setNewDueDate(e.target.value)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newTask.trim()}
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
