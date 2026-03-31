@@ -318,11 +318,11 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
       {/* Bottom sheet add form */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-40 bg-black/30"
+          className="fixed inset-0 z-50 bg-black/30"
           onClick={() => setShowAddForm(false)}
         >
           <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 pb-10 shadow-2xl"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 pb-10 shadow-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />

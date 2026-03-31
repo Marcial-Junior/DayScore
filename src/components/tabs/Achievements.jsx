@@ -1,159 +1,83 @@
-import { useRef, useState } from 'react'
 import { BADGES } from '../../utils/achievements'
-import { get, set, KEYS } from '../../utils/storage'
 
-function exportData() {
-  const data = {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    name: get(KEYS.NAME, ''),
-    tasks: get(KEYS.TASKS, {}),
-    mood: get(KEYS.MOOD, {}),
-    routines: get(KEYS.ROUTINES, []),
-  }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `dayscore-backup-${new Date().toISOString().split('T')[0]}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+const STREAK_MILESTONES = [3, 7, 14, 30, 100, 365]
+
+function nextMilestone(streak) {
+  return STREAK_MILESTONES.find((m) => m > streak) || STREAK_MILESTONES[STREAK_MILESTONES.length - 1]
 }
 
-export default function Achievements({ tasks, routines, streak, onSignOut }) {
-  const fileRef = useRef(null)
-  const [importMsg, setImportMsg] = useState(null)
-
-  const handleImport = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target.result)
-        if (data.tasks) set(KEYS.TASKS, data.tasks)
-        if (data.mood) set(KEYS.MOOD, data.mood)
-        if (data.routines) set(KEYS.ROUTINES, data.routines)
-        if (data.name) set(KEYS.NAME, data.name)
-        setImportMsg('Backup restored! Reloading...')
-        setTimeout(() => window.location.reload(), 1200)
-      } catch {
-        setImportMsg('Invalid file. Please use a DayScore backup.')
-      }
-    }
-    reader.readAsText(file)
-  }
+export default function Achievements({ tasks, routines, streak }) {
   const ctx = { tasks, routines, streak }
   const unlockedCount = BADGES.filter((b) => b.check(ctx)).length
+  const next = nextMilestone(streak)
+  const milestoneProgress = Math.min((streak / next) * 100, 100)
+
+  const streakLabel =
+    streak === 0
+      ? 'Start your streak today!'
+      : streak === 1
+      ? '1 day streak — keep going!'
+      : `${streak} day streak — keep it up!`
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Achievements</h1>
-        <p className="text-gray-400 text-sm mt-0.5">
+        <h1 className="text-lg font-bold text-gray-900">Awards</h1>
+        <p className="text-xs mt-0.5" style={{ color: '#1D9E75' }}>
           {unlockedCount}/{BADGES.length} unlocked
         </p>
       </div>
 
-      {/* Streak banner */}
-      <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-5 text-white">
-        <div className="flex items-center gap-4">
-          <span className="text-5xl">🔥</span>
-          <div>
-            <p className="text-3xl font-bold leading-none">{streak}</p>
-            <p className="text-white/90 text-sm mt-1">
-              {streak === 0
-                ? 'Start your streak today!'
-                : streak === 1
-                ? '1 day streak — keep going!'
-                : `${streak} day streak — keep it up!`}
-            </p>
+      {/* Streak card */}
+      <div
+        className="rounded-xl p-4 text-white flex items-center gap-4"
+        style={{ background: 'linear-gradient(135deg, #1a1a2e, #534AB7)' }}
+      >
+        <span className="text-4xl flex-shrink-0">🔥</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-3xl font-bold leading-none">{streak}</p>
+          <p className="text-white/80 text-xs mt-1">{streakLabel}</p>
+          <p className="text-white/55 text-[10px] mt-1">Next milestone: {next} days</p>
+          <div className="h-1 bg-white/20 rounded-full mt-2 overflow-hidden">
+            <div
+              className="h-full bg-white/80 rounded-full transition-all duration-500"
+              style={{ width: `${milestoneProgress}%` }}
+            />
           </div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-semibold text-gray-700">Overall progress</span>
-          <span className="text-sm font-semibold text-primary">
-            {unlockedCount}/{BADGES.length}
-          </span>
-        </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${(unlockedCount / BADGES.length) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Backup / Restore */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        <h2 className="font-semibold text-gray-900 text-sm mb-1">Data Backup</h2>
-        <p className="text-xs text-gray-400 mb-3">Export your data to a file or restore from a previous backup.</p>
-        <div className="flex gap-2">
-          <button
-            onClick={exportData}
-            className="flex-1 flex items-center justify-center gap-2 bg-primary text-white rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            ⬇ Export
-          </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-200 transition-colors"
-          >
-            ⬆ Import
-          </button>
-          <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-        </div>
-        {importMsg && (
-          <p className={`text-xs mt-2 text-center font-medium ${importMsg.includes('Restored') || importMsg.includes('restored') ? 'text-success' : 'text-red-500'}`}>
-            {importMsg}
-          </p>
-        )}
-      </div>
-
-      {/* Badge grid */}
+      {/* Achievements grid */}
+      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold px-1">Achievements</p>
       <div className="grid grid-cols-2 gap-3">
         {BADGES.map((badge) => {
           const unlocked = badge.check(ctx)
+          const pct = Math.round(badge.progress(ctx))
           return (
             <div
               key={badge.id}
-              className={`bg-white rounded-xl border p-4 transition-all ${
-                unlocked ? 'border-primary/20 shadow-sm' : 'border-gray-100 opacity-50'
+              className={`bg-white rounded-xl border border-gray-100 p-4 flex flex-col items-center gap-2 transition-all ${
+                unlocked ? 'shadow-sm' : 'opacity-40'
               }`}
             >
-              <div className="flex items-start gap-3">
-                <span className={`text-3xl flex-shrink-0 ${!unlocked ? 'grayscale' : ''}`}>
-                  {badge.icon}
-                </span>
-                <div className="min-w-0">
-                  <p className={`font-semibold text-sm ${unlocked ? 'text-gray-900' : 'text-gray-400'}`}>
-                    {badge.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5 leading-tight">{badge.desc}</p>
-                  {unlocked && (
-                    <span className="inline-block text-[10px] bg-success/10 text-success font-semibold px-2 py-0.5 rounded-full mt-1.5">
-                      Unlocked ✓
-                    </span>
-                  )}
-                </div>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                style={{ backgroundColor: badge.iconBg }}
+              >
+                {badge.icon}
+              </div>
+              <p className="font-semibold text-xs text-gray-900 text-center leading-tight">{badge.title}</p>
+              <p className="text-[10px] text-gray-400 text-center leading-tight">{badge.desc}</p>
+              <div className="w-full h-[3px] bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, backgroundColor: badge.color }}
+                />
               </div>
             </div>
           )
         })}
       </div>
-      {/* Sign out */}
-      {onSignOut && (
-        <button
-          onClick={onSignOut}
-          className="w-full py-2.5 text-sm text-gray-400 hover:text-red-400 transition-colors border border-gray-100 rounded-xl"
-        >
-          Sign out
-        </button>
-      )}
     </div>
   )
 }

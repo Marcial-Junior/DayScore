@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DayScore – History Reference</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e8e8f2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px 12px 48px; display: flex; flex-direction: column; align-items: center; }
+  .label { font-size: 11px; color: #888; margin-bottom: 8px; font-weight: 500; }
+  .phone { background: #f2f2f8; border-radius: 28px; width: 220px; overflow: hidden; box-shadow: 0 10px 32px rgba(0,0,0,0.10); }
+  .screen { padding: 16px 12px 8px; display: flex; flex-direction: column; gap: 8px; min-height: 460px; }
+  .tab-bar { display: flex; justify-content: space-around; border-top: 0.5px solid #e0e0e0; padding: 7px 0 10px; background: white; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 8px; color: #bbb; }
+  .tab.active { color: #534AB7; font-weight: 600; }
+  .tab-icon { font-size: 13px; }
+  .pg-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .pg-sub { font-size: 10px; color: #aaa; margin-top: 1px; }
+  .hist-summary { display: flex; gap: 6px; }
+  .hist-stat { flex: 1; background: white; border-radius: 10px; padding: 7px 6px; text-align: center; }
+  .hist-val { font-size: 14px; font-weight: 700; color: #534AB7; }
+  .hist-lbl { font-size: 8px; color: #bbb; margin-top: 1px; }
+  .chart-card { background: white; border-radius: 12px; padding: 10px 11px; }
+  .chart-title { font-size: 10px; font-weight: 600; color: #1a1a2e; margin-bottom: 8px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 3px; }
+  .bar-day { font-size: 7px; color: #bbb; }
+  .bar-val { font-size: 7px; color: #999; }
+  .mood-hist-card { background: white; border-radius: 12px; padding: 10px 11px; }
+  .mood-week-row { display: flex; gap: 3px; margin-top: 6px; }
+  .mood-week-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .mood-week-emoji { font-size: 12px; }
+  .mood-week-day { font-size: 7px; color: #ccc; }
+  .best-day-card { background: linear-gradient(135deg, #1a1a2e, #534AB7); border-radius: 12px; padding: 11px; color: white; }
+  .best-day-label { font-size: 9px; opacity: 0.7; }
+  .best-day-val { font-size: 14px; font-weight: 700; margin-top: 2px; }
+  .best-day-sub { font-size: 9px; opacity: 0.6; margin-top: 1px; }
+</style>
+</head>
+<body>
+<p class="label">HISTORY — Reference Mockup</p>
+<div class="phone">
+  <div class="screen">
+    <div><div class="pg-title">History</div><div class="pg-sub">Last 7 days at a glance</div></div>
+    <div class="hist-summary">
+      <div class="hist-stat"><div class="hist-val">67%</div><div class="hist-lbl">Avg score</div></div>
+      <div class="hist-stat"><div class="hist-val" style="color:#1D9E75;">5</div><div class="hist-lbl">Active days</div></div>
+      <div class="hist-stat"><div class="hist-val" style="color:#f4a261;">🔥 1</div><div class="hist-lbl">Streak</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Daily Score</div>
+      <div class="bar-chart">
+        <div class="bar-col"><div class="bar-val">80%</div><div class="bar" style="height:56px;background:#AFA9EC;"></div><div class="bar-day">W</div></div>
+        <div class="bar-col"><div class="bar-val">100%</div><div class="bar" style="height:70px;background:#1D9E75;"></div><div class="bar-day">T</div></div>
+        <div class="bar-col"><div class="bar-val">60%</div><div class="bar" style="height:42px;background:#AFA9EC;"></div><div class="bar-day">F</div></div>
+        <div class="bar-col"><div class="bar-val">40%</div><div class="bar" style="height:28px;background:#EF9F27;"></div><div class="bar-day">S</div></div>
+        <div class="bar-col"><div class="bar-val">75%</div><div class="bar" style="height:52px;background:#AFA9EC;"></div><div class="bar-day">S</div></div>
+        <div class="bar-col"><div class="bar-val">90%</div><div class="bar" style="height:63px;background:#AFA9EC;"></div><div class="bar-day">M</div></div>
+        <div class="bar-col"><div class="bar-val">20%</div><div class="bar" style="height:14px;background:#534AB7;border:1.5px solid #3a33a0;"></div><div class="bar-day" style="color:#534AB7;font-weight:700;">T</div></div>
+      </div>
+    </div>
+    <div class="mood-hist-card">
+      <div class="chart-title">Mood this week</div>
+      <div class="mood-week-row">
+        <div class="mood-week-item"><span class="mood-week-emoji">😄</span><span class="mood-week-day">W</span></div>
+        <div class="mood-week-item"><span class="mood-week-emoji">🚀</span><span class="mood-week-day">T</span></div>
+        <div class="mood-week-item"><span class="mood-week-emoji">🙂</span><span class="mood-week-day">F</span></div>
+        <div class="mood-week-item"><span class="mood-week-emoji">😐</span><span class="mood-week-day">S</span></div>
+        <div class="mood-week-item"><span class="mood-week-emoji">😄</span><span class="mood-week-day">S</span></div>
+        <div class="mood-week-item"><span class="mood-week-emoji">🙂</span><span class="mood-week-day">M</span></div>
+        <div class="mood-week-item"><span class="mood-week-emoji">🙂</span><span class="mood-week-day">T</span></div>
+      </div>
+    </div>
+    <div class="best-day-card">
+      <div class="best-day-label">🏆 Best day this week</div>
+      <div class="best-day-val">Thursday — 100%</div>
+      <div class="best-day-sub">All 6 tasks completed</div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab"><span class="tab-icon">📋</span>Today</div>
+    <div class="tab"><span class="tab-icon">🔄</span>Routine</div>
+    <div class="tab active"><span class="tab-icon">📊</span>History</div>
+    <div class="tab"><span class="tab-icon">🏆</span>Awards</div>
+    <div class="tab"><span class="tab-icon">⚙️</span>Settings</div>
+  </div>
+</div>
+</body>
+</html>

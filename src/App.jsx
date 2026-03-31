@@ -9,6 +9,7 @@ import Today from './components/tabs/Today'
 import Routine from './components/tabs/Routine'
 import History from './components/tabs/History'
 import Achievements from './components/tabs/Achievements'
+import Settings from './components/tabs/Settings'
 import AchievementToast from './components/ui/AchievementToast'
 
 const SEEN_KEY = 'ds_seen_achievements'
@@ -109,13 +110,19 @@ function App() {
       case 'routine':
         return <Routine routines={routines} updateRoutines={updateRoutines} />
       case 'history':
-        return <History tasks={tasks} routines={routines} />
-      case 'achievements':
+        return <History tasks={tasks} routines={routines} mood={mood} streak={streak} />
+      case 'awards':
         return (
           <Achievements
             tasks={tasks}
             routines={routines}
             streak={streak}
+          />
+        )
+      case 'settings':
+        return (
+          <Settings
+            session={session}
             onSignOut={() => supabase.auth.signOut()}
           />
         )

@@ -1,15 +1,41 @@
 import { useState, useRef, useEffect } from 'react'
-import { todayStr, formatTime12h } from '../../utils/dates'
+import { todayStr, getWeekWindow } from '../../utils/dates'
+
+const ICON_BG_COLORS = ['#fff8e6', '#e8f5ee', '#EEEDFE', '#E6F1FB', '#FAEEDA', '#FCEBEB']
+
+// Mon-Fri day-of-week indices (JS: 0=Sun)
+const WEEKDAY_INDICES = [1, 2, 3, 4, 5]
+const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F']
+
+const DAY_ALL_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+const EMOJI_LIST = ['🏋️', '🧘', '🏃', '📚', '💧', '🥗', '😴', '⏰', '💻', '🎵', '🚴', '🧹', '✍️', '🎸', '🧠', '🌅', '💊', '🏊', '🤸', '🎯']
+
+function extractEmoji(name) {
+  const match = name.match(/^\p{Emoji_Presentation}/u) || name.match(/^\p{Emoji}\uFE0F/u) || name.match(/^[\u{1F300}-\u{1FAFF}]/u)
+  return match ? match[0] : null
+}
+
+function stripEmoji(name) {
+  return name.replace(/^[\p{Emoji_Presentation}\p{Emoji}\uFE0F\s]+/u, '').trim()
+}
+
+function calcRoutineStreak(completions) {
+  const today = todayStr()
+  let streak = 0
+  let d = today
+  while (completions?.[d]) {
+    streak++
+    const prev = new Date(d + 'T12:00:00')
+    prev.setDate(prev.getDate() - 1)
+    d = prev.toISOString().split('T')[0]
+  }
+  return streak
+}
 
 const Checkmark = () => (
   <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-  </svg>
-)
-
-const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 )
 
@@ -18,18 +44,11 @@ const ChevronLeft = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
   </svg>
 )
-
 const ChevronRight = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
 )
-
-// 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'fri', 'Sat']
-
-const EMOJI_LIST = ['🏋️', '🧘', '🏃', '📚', '💧', '🥗', '😴', '⏰', '💻', '🎵', '🚴', '🧹', '✍️', '🎸', '🧠', '🌅', '💊', '🏊', '🤸', '🎯']
 
 function offsetDate(base, offset) {
   const d = new Date(base + 'T12:00:00')
@@ -51,19 +70,10 @@ function EmojiPicker({ onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
   return (
-    <div
-      ref={ref}
-      className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-2 grid grid-cols-5 gap-1 w-44"
-    >
+    <div ref={ref} className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-2 grid grid-cols-5 gap-1 w-44">
       {EMOJI_LIST.map((em) => (
-        <button
-          key={em}
-          type="button"
-          onClick={() => onSelect(em)}
-          className="text-xl hover:bg-gray-100 rounded-lg p-1 transition-colors"
-        >
-          {em}
-        </button>
+        <button key={em} type="button" onClick={() => onSelect(em)}
+          className="text-xl hover:bg-gray-100 rounded-lg p-1 transition-colors">{em}</button>
       ))}
     </div>
   )
@@ -72,11 +82,13 @@ function EmojiPicker({ onSelect, onClose }) {
 export default function Routine({ routines, updateRoutines }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
+  const [showAddForm, setShowAddForm] = useState(false)
   const [newHabit, setNewHabit] = useState('')
   const [newTime, setNewTime] = useState('')
   const [newEmoji, setNewEmoji] = useState('')
-  const [newActiveDays, setNewActiveDays] = useState([1, 2, 3, 4, 5]) // Mon-Fri default
+  const [newActiveDays, setNewActiveDays] = useState([1, 2, 3, 4, 5])
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const inputRef = useRef(null)
 
   const isPast = selectedDate < today
   const isToday = selectedDate === today
@@ -90,20 +102,26 @@ export default function Routine({ routines, updateRoutines }) {
     setSelectedDate(next)
   }
 
-  // Which routines are active on the selected date
+  useEffect(() => {
+    if (showAddForm) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [showAddForm])
+
   const selectedDayOfWeek = new Date(selectedDate + 'T12:00:00').getDay()
   const activeRoutines = routines.filter((r) => {
-    if (!r.activeDays || r.activeDays.length === 0) return true // empty = all days
+    if (!r.activeDays || r.activeDays.length === 0) return true
     return r.activeDays.includes(selectedDayOfWeek)
   })
 
-  // Sort: timed first (ascending), then untimed
   const sortedRoutines = [...activeRoutines].sort((a, b) => {
     if (!a.time && !b.time) return 0
     if (!a.time) return 1
     if (!b.time) return -1
     return a.time.localeCompare(b.time)
   })
+
+  // Get Mon-Fri dates for the current week
+  const weekDays = getWeekWindow(0)
+  const monFriDates = WEEKDAY_INDICES.map((dow) => weekDays[dow - 1]) // Mon=index0, Tue=1...
 
   const addHabit = (e) => {
     e.preventDefault()
@@ -120,6 +138,7 @@ export default function Routine({ routines, updateRoutines }) {
     setNewTime('')
     setNewEmoji('')
     setNewActiveDays([1, 2, 3, 4, 5])
+    setShowAddForm(false)
   }
 
   const toggleCompletion = (routineId) => {
@@ -137,180 +156,189 @@ export default function Routine({ routines, updateRoutines }) {
   }
 
   const toggleActiveDay = (day) => {
-    setNewActiveDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    )
+    setNewActiveDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day])
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Routine</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Daily habits to build consistency</p>
+        <h1 className="text-lg font-bold text-gray-900">Routine</h1>
+        <p className="text-gray-400 text-xs mt-0.5">Daily habits to build consistency</p>
       </div>
 
       {/* Date navigation */}
-      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-        <button
-          onClick={() => navigateDay(-1)}
-          disabled={!canGoPrev}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
+      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-2.5">
+        <button onClick={() => navigateDay(-1)} disabled={!canGoPrev}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-colors">
           <ChevronLeft />
         </button>
         <div className="text-center">
           <p className={`font-semibold text-sm ${isToday ? 'text-primary' : 'text-gray-800'}`}>
             {dateLabel(selectedDate, today)}
           </p>
-          {isPast && (
-            <p className="text-[10px] text-gray-400 mt-0.5">Retroactive entry</p>
-          )}
+          {isPast && <p className="text-[10px] text-gray-400 mt-0.5">Retroactive entry</p>}
         </div>
-        <button
-          onClick={() => navigateDay(1)}
-          disabled={!canGoNext}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
+        <button onClick={() => navigateDay(1)} disabled={!canGoNext}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-colors">
           <ChevronRight />
         </button>
       </div>
 
-      {/* Add habit form */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
-        <form onSubmit={addHabit} className="space-y-3">
-          <div className="flex gap-2">
-            {/* Emoji button */}
-            <div className="relative flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker((v) => !v)}
-                className="w-10 h-10 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg text-xl hover:bg-gray-100 transition-colors"
-              >
-                {newEmoji || '😊'}
-              </button>
-              {showEmojiPicker && (
-                <EmojiPicker
-                  onSelect={(em) => { setNewEmoji(em); setShowEmojiPicker(false) }}
-                  onClose={() => setShowEmojiPicker(false)}
-                />
-              )}
-            </div>
-            <input
-              type="text"
-              value={newHabit}
-              onChange={(e) => setNewHabit(e.target.value)}
-              placeholder="Habit name..."
-              className="flex-1 bg-gray-50 border border-transparent rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/20 placeholder-gray-400"
-            />
-            <input
-              type="time"
-              value={newTime}
-              onChange={(e) => setNewTime(e.target.value)}
-              className="w-24 bg-gray-50 border border-transparent rounded-lg px-2 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 flex-shrink-0"
-            />
-          </div>
-          {/* Active days toggles */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 flex-shrink-0">Active:</span>
-            <div className="flex gap-1">
-              {DAY_LABELS.map((label, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => toggleActiveDay(i)}
-                  className={`w-7 h-7 rounded-full text-[11px] font-semibold transition-colors ${
-                    newActiveDays.includes(i)
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <button
-              type="submit"
-              disabled={!newHabit.trim()}
-              className="ml-auto bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors flex-shrink-0"
-            >
-              Add
-            </button>
-          </div>
-        </form>
-      </div>
-
       {/* Habit list */}
-      {sortedRoutines.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 py-12 text-center text-gray-400">
-          <p className="text-4xl mb-3">🌱</p>
-          <p className="text-sm">
-            {routines.length === 0
-              ? 'No habits yet. Start building your routine!'
-              : 'No habits scheduled for this day.'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {sortedRoutines.map((routine) => {
-            const isDone = routine.completions?.[selectedDate]
-            const activeDays = routine.activeDays || []
+      <div className="space-y-2">
+        {sortedRoutines.map((routine, idx) => {
+          const isDone = routine.completions?.[selectedDate]
+          const emoji = extractEmoji(routine.name)
+          const displayName = emoji ? stripEmoji(routine.name) : routine.name
+          const iconBg = ICON_BG_COLORS[idx % ICON_BG_COLORS.length]
+          const rstreak = calcRoutineStreak(routine.completions)
 
-            return (
-              <div key={routine.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => toggleCompletion(routine.id)}
-                    className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                      isDone
-                        ? 'bg-success border-success'
-                        : isPast
-                        ? 'border-gray-200 hover:border-gray-400'
-                        : 'border-gray-300 hover:border-primary'
-                    }`}
-                  >
-                    {isDone && <Checkmark />}
-                  </button>
-                  <span
-                    className={`flex-1 font-medium text-sm ${
-                      isDone
-                        ? 'line-through text-gray-400'
-                        : isPast
-                        ? 'text-gray-500'
-                        : 'text-gray-900'
-                    }`}
-                  >
-                    {routine.name}
-                  </span>
-                  {routine.time && (
-                    <span className="text-[11px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
-                      {formatTime12h(routine.time)}
-                    </span>
-                  )}
-                  {/* Active day pills */}
-                  <div className="flex gap-0.5 flex-shrink-0">
-                    {DAY_LABELS.map((label, i) => (
-                      <span
-                        key={i}
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-semibold ${
-                          activeDays.includes(i) || activeDays.length === 0
-                            ? 'bg-primary/15 text-primary'
-                            : 'bg-gray-100 text-gray-300'
-                        }`}
-                      >
-                        {label}
-                      </span>
-                    ))}
+          // Week progress (Mon-Fri)
+          const doneThisWeek = monFriDates.filter((d) => d <= today && routine.completions?.[d]).length
+          const totalThisWeek = monFriDates.filter((d) => d <= today).length
+          const pct = totalThisWeek > 0 ? Math.round((doneThisWeek / totalThisWeek) * 100) : 0
+          const barColor = pct >= 80 ? '#1D9E75' : pct >= 50 ? '#534AB7' : '#EF9F27'
+
+          return (
+            <div key={routine.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-3">
+              {/* Icon */}
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                style={{ backgroundColor: iconBg }}
+              >
+                {emoji || displayName[0]?.toUpperCase()}
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-gray-900 truncate mb-1.5">{displayName}</p>
+                {/* Progress bar */}
+                <div className="h-[3px] bg-gray-100 rounded-full overflow-hidden mb-2">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${pct}%`, backgroundColor: barColor }} />
+                </div>
+                {/* Day dots + streak */}
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1">
+                    {monFriDates.map((date, i) => {
+                      const isThisToday = date === today
+                      const done = routine.completions?.[date]
+                      const isFutureDate = date > today
+                      return (
+                        <div key={date}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-semibold ${
+                            isFutureDate
+                              ? 'bg-gray-100 text-gray-300'
+                              : done
+                              ? 'bg-success text-white'
+                              : isThisToday
+                              ? 'bg-primary text-white'
+                              : 'bg-gray-100 text-gray-400'
+                          }`}
+                        >
+                          {WEEKDAY_LABELS[i]}
+                        </div>
+                      )
+                    })}
                   </div>
-                  <button
-                    onClick={() => deleteRoutine(routine.id)}
-                    className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
-                  >
-                    <TrashIcon />
-                  </button>
+                  {rstreak > 0 && (
+                    <span className="text-[9px] font-semibold text-amber-500 flex-shrink-0">🔥 {rstreak}d</span>
+                  )}
                 </div>
               </div>
-            )
-          })}
+
+              {/* Checkmark */}
+              <button
+                onClick={() => toggleCompletion(routine.id)}
+                onLongPress={() => deleteRoutine(routine.id)}
+                className={`w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                  isDone ? 'bg-success border-success' : isPast ? 'border-gray-200' : 'border-gray-300 hover:border-primary'
+                }`}
+              >
+                {isDone && <Checkmark />}
+              </button>
+            </div>
+          )
+        })}
+
+        {/* Empty state if no active routines but routines exist */}
+        {sortedRoutines.length === 0 && routines.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-100 py-8 text-center text-gray-400">
+            <p className="text-sm">No habits scheduled for this day.</p>
+          </div>
+        )}
+
+        {/* Dashed add row */}
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="w-full bg-white rounded-xl border border-dashed border-gray-300 py-3 flex items-center justify-center gap-2 text-gray-400 hover:text-primary hover:border-primary transition-colors text-sm"
+        >
+          <span className="text-base">➕</span>
+          Add new habit...
+        </button>
+      </div>
+
+      {/* Bottom sheet add form */}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setShowAddForm(false)}>
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 pb-10 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <p className="font-semibold text-gray-800 text-sm mb-3">Add habit</p>
+            <form onSubmit={addHabit} className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-shrink-0">
+                  <button type="button" onClick={() => setShowEmojiPicker((v) => !v)}
+                    className="w-10 h-10 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg text-xl hover:bg-gray-100 transition-colors">
+                    {newEmoji || '😊'}
+                  </button>
+                  {showEmojiPicker && (
+                    <EmojiPicker
+                      onSelect={(em) => { setNewEmoji(em); setShowEmojiPicker(false) }}
+                      onClose={() => setShowEmojiPicker(false)}
+                    />
+                  )}
+                </div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newHabit}
+                  onChange={(e) => setNewHabit(e.target.value)}
+                  placeholder="Habit name..."
+                  className="flex-1 bg-gray-50 border border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+                />
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="w-20 bg-gray-50 border border-transparent rounded-xl px-2 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 flex-shrink-0"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 flex-shrink-0">Active:</span>
+                <div className="flex gap-1">
+                  {DAY_ALL_LABELS.map((label, i) => (
+                    <button key={i} type="button" onClick={() => toggleActiveDay(i)}
+                      className={`w-7 h-7 rounded-full text-[11px] font-semibold transition-colors ${
+                        newActiveDays.includes(i) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowAddForm(false)}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium">
+                  Cancel
+                </button>
+                <button type="submit" disabled={!newHabit.trim()}
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors">
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
