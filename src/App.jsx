@@ -10,6 +10,7 @@ import Routine from './components/tabs/Routine'
 import History from './components/tabs/History'
 import Achievements from './components/tabs/Achievements'
 import Settings from './components/tabs/Settings'
+import Todos from './components/tabs/Todos'
 import AchievementToast from './components/ui/AchievementToast'
 
 const SEEN_KEY = 'ds_seen_achievements'
@@ -36,7 +37,15 @@ function App() {
   const [routines, setRoutines] = useState([])
   const [toast, setToast] = useState(null)
   const [lang, setLang] = useState(() => localStorage.getItem('ds_lang') || 'en')
+  const [todos, setTodos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ds_todos') || '[]') } catch { return [] }
+  })
   const saveTimer = useRef(null)
+
+  const updateTodos = (newTodos) => {
+    setTodos(newTodos)
+    localStorage.setItem('ds_todos', JSON.stringify(newTodos))
+  }
 
   const handleLangChange = (l) => {
     setLang(l)
@@ -126,8 +135,12 @@ function App() {
             streak={streak}
             userName={userName}
             lang={lang}
+            todos={todos}
+            updateTodos={updateTodos}
           />
         )
+      case 'todos':
+        return <Todos todos={todos} updateTodos={updateTodos} />
       case 'routine':
         return <Routine routines={routines} updateRoutines={updateRoutines} lang={lang} />
       case 'history':

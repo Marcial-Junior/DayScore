@@ -81,7 +81,7 @@ function taskSectionLabel(date, today, lang) {
   return d.toLocaleDateString(t('locale', lang), { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName, lang }) {
+export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName, lang, todos, updateTodos }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
   const [newTask, setNewTask] = useState('')
@@ -383,6 +383,36 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
           </ul>
         )}
       </div>
+
+      {/* Due today — todos from To-Dos tab */}
+      {(() => {
+        const todaysTodos = (todos || []).filter((td) => td.dueDate === today && !td.done)
+        if (!isToday || todaysTodos.length === 0) return null
+        return (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-amber-200">
+              <p className="text-[10px] text-amber-700 font-semibold">📌 Due today — doesn't count in score</p>
+            </div>
+            <ul>
+              {todaysTodos.map((todo, i) => (
+                <li
+                  key={todo.id}
+                  className={`flex items-center gap-3 px-4 py-3 ${i < todaysTodos.length - 1 ? 'border-b border-amber-100' : ''}`}
+                >
+                  <button
+                    onClick={() => updateTodos((todos || []).map((td) => td.id === todo.id ? { ...td, done: true } : td))}
+                    className="w-5 h-5 rounded-full border-2 border-amber-400 flex-shrink-0 flex items-center justify-center hover:bg-amber-200 transition-all"
+                  />
+                  <span className="flex-1 text-sm text-amber-900">{todo.title}</span>
+                  {todo.category && (
+                    <span className="text-[9px] text-amber-600 font-medium capitalize">{todo.category}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })()}
 
       {/* Mood selector */}
       {!isFuture && (
