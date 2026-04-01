@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, loadUserData, saveUserData } from './utils/supabase'
 import { set, KEYS } from './utils/storage'
+import { todayStr } from './utils/dates'
 import { calcStreak } from './utils/streak'
 import { BADGES } from './utils/achievements'
 import AuthScreen from './components/AuthScreen'
@@ -95,6 +96,40 @@ function App() {
     scheduleSave({ routines: newRoutines })
   }
 
+  const moveTaskToTodos = (task, storageDate) => {
+    const newTasks = {
+      ...tasks,
+      [storageDate]: (tasks[storageDate] || []).filter((t) => t.id !== task.id),
+    }
+    updateTasks(newTasks)
+    updateTodos([...todos, {
+      id: crypto.randomUUID(),
+      title: task.text,
+      category: task.category,
+      dueDate: task.dueDate,
+      priority: 'medium',
+      done: task.done,
+      createdAt: new Date().toISOString(),
+    }])
+  }
+
+  const moveTodoToTask = (todo) => {
+    const today = todayStr()
+    updateTodos(todos.filter((td) => td.id !== todo.id))
+    updateTasks({
+      ...tasks,
+      [today]: [...(tasks[today] || []), {
+        id: crypto.randomUUID(),
+        text: todo.title,
+        done: todo.done,
+        isRoutine: false,
+        category: todo.category,
+        dueDate: todo.dueDate,
+        time: null,
+      }],
+    })
+  }
+
   // Achievement detection
   useEffect(() => {
     if (!session) return
@@ -137,10 +172,11 @@ function App() {
             lang={lang}
             todos={todos}
             updateTodos={updateTodos}
+            onMoveToTodos={moveTaskToTodos}
           />
         )
       case 'todos':
-        return <Todos todos={todos} updateTodos={updateTodos} />
+        return <Todos todos={todos} updateTodos={updateTodos} onMoveToTask={moveTodoToTask} />
       case 'routine':
         return <Routine routines={routines} updateRoutines={updateRoutines} lang={lang} />
       case 'history':

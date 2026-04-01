@@ -28,8 +28,13 @@ const XIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 )
+const PencilIcon = () => (
+  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+)
 
-export default function Todos({ todos, updateTodos }) {
+export default function Todos({ todos, updateTodos, onMoveToTask }) {
   const today = todayStr()
   const [filter, setFilter] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
@@ -37,6 +42,33 @@ export default function Todos({ todos, updateTodos }) {
   const [newCategory, setNewCategory] = useState(null)
   const [newDueDate, setNewDueDate] = useState('')
   const [newPriority, setNewPriority] = useState('medium')
+
+  const [editingTodo, setEditingTodo] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editCategory, setEditCategory] = useState(null)
+  const [editDueDate, setEditDueDate] = useState('')
+  const [editPriority, setEditPriority] = useState('medium')
+
+  const openEdit = (todo) => {
+    setEditingTodo(todo)
+    setEditTitle(todo.title)
+    setEditCategory(todo.category || null)
+    setEditDueDate(todo.dueDate || '')
+    setEditPriority(todo.priority || 'medium')
+  }
+
+  const closeEdit = () => setEditingTodo(null)
+
+  const saveEdit = (e) => {
+    e.preventDefault()
+    if (!editTitle.trim()) return
+    updateTodos(todos.map((td) =>
+      td.id === editingTodo.id
+        ? { ...td, title: editTitle.trim(), category: editCategory, dueDate: editDueDate || null, priority: editPriority }
+        : td
+    ))
+    closeEdit()
+  }
 
   const pending = todos.filter((td) => !td.done)
   const pendingCount = pending.length
@@ -133,6 +165,12 @@ export default function Todos({ todos, updateTodos }) {
           </span>
         )}
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_COLORS[todo.priority] || 'bg-gray-300'}`} />
+        <button
+          onClick={() => openEdit(todo)}
+          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-primary transition-all"
+        >
+          <PencilIcon />
+        </button>
         <button
           onClick={() => deleteTodo(todo.id)}
           className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
@@ -294,6 +332,99 @@ export default function Todos({ todos, updateTodos }) {
                   className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40"
                 >
                   Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editingTodo && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4"
+          onClick={closeEdit}
+        >
+          <div
+            className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-semibold text-gray-800 text-sm mb-3">Edit To-Do</p>
+            <form onSubmit={saveEdit} className="space-y-3">
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="To-do title..."
+                autoFocus
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
+              />
+              <div className="flex gap-2 flex-wrap items-center">
+                <button
+                  type="button"
+                  onClick={() => setEditCategory((c) => (c === 'work' ? null : 'work'))}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    editCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 text-gray-400'
+                  }`}
+                >
+                  💼 Work
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditCategory((c) => (c === 'personal' ? null : 'personal'))}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    editCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 text-gray-400'
+                  }`}
+                >
+                  🏠 Personal
+                </button>
+                <input
+                  type="date"
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 flex-shrink-0">Priority:</span>
+                <div className="flex gap-1">
+                  {[['high', 'High'], ['medium', 'Medium'], ['low', 'Low']].map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setEditPriority(val)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                        editPriority === val ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {onMoveToTask && (
+                <button
+                  type="button"
+                  onClick={() => { onMoveToTask(editingTodo); closeEdit() }}
+                  className="w-full py-2 rounded-xl text-xs text-primary/70 hover:bg-primary/5 border border-primary/20 transition-colors"
+                >
+                  📋 Move to Today
+                </button>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editTitle.trim()}
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40"
+                >
+                  Save
                 </button>
               </div>
             </form>

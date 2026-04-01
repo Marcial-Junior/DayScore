@@ -36,7 +36,13 @@ function greeting(lang) {
   return t('good_evening', lang)
 }
 
-// daysBetween(dueDate, today): negative = overdue, 0 = today, positive = future
+function formatTime(time) {
+  if (!time) return null
+  const [h, m] = time.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 function dueBadge(dueDate, done, lang) {
   if (!dueDate || done) return null
   const diff = daysBetween(dueDate, todayStr())
@@ -50,8 +56,20 @@ function dueBadge(dueDate, done, lang) {
 
 function urgencyScore(task) {
   if (task.done) return 9999
-  if (!task.dueDate) return 1000
-  return daysBetween(task.dueDate, todayStr())
+  const diff = task.dueDate ? daysBetween(task.dueDate, todayStr()) : null
+  // Overdue always first
+  if (diff !== null && diff < 0) return -10000 + diff
+  // Tasks with a time slot: sort chronologically
+  if (task.time) {
+    const [h, m] = task.time.split(':').map(Number)
+    return h * 60 + m
+  }
+  // Due today but no time
+  if (diff === 0) return 2000
+  // Future due dates
+  if (diff !== null) return 3000 + diff
+  // No date, no time
+  return 5000
 }
 
 function catDotColor(category) {
@@ -60,7 +78,6 @@ function catDotColor(category) {
   return 'bg-amber-300'
 }
 
-// Returns tasks from OTHER dates whose dueDate === targetDate
 function getTasksDueOn(allTasks, targetDate) {
   const stored = allTasks[targetDate] || []
   const storedIds = new Set(stored.map((t) => t.id))
@@ -81,12 +98,13 @@ function taskSectionLabel(date, today, lang) {
   return d.toLocaleDateString(t('locale', lang), { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName, lang, todos, updateTodos }) {
+export default function Today({ tasks, updateTasks, mood, updateMood, routines, streak, userName, lang, todos, updateTodos, onMoveToTodos }) {
   const today = todayStr()
   const [selectedDate, setSelectedDate] = useState(today)
   const [newTask, setNewTask] = useState('')
   const [newCategory, setNewCategory] = useState(null)
   const [newDueDate, setNewDueDate] = useState('')
+  const [newTime, setNewTime] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [confettiOrigin, setConfettiOrigin] = useState(null)
@@ -97,7 +115,6 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   const isToday = selectedDate === today
   const isFuture = selectedDate > today
 
-  // Tasks stored on selected date + tasks from other dates due on this date
   const dayTasks = tasks[selectedDate] || []
   const tasksDueHere = getTasksDueOn(tasks, selectedDate)
   const allVisibleTasks = [...dayTasks, ...tasksDueHere].sort((a, b) => urgencyScore(a) - urgencyScore(b))
@@ -111,18 +128,18 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   const moodLabels = t('mood_labels', lang)
 
   const isFormOpen = showAddForm || editingTask !== null
+  const isEditing = editingTask !== null
 
-  // Focus input when form opens
   useEffect(() => {
     if (isFormOpen) setTimeout(() => inputRef.current?.focus(), 50)
   }, [isFormOpen])
 
-  // Populate form when editing
   useEffect(() => {
     if (editingTask) {
       setNewTask(editingTask.text)
       setNewCategory(editingTask.category || null)
       setNewDueDate(editingTask.dueDate || '')
+      setNewTime(editingTask.time || '')
     }
   }, [editingTask])
 
@@ -130,6 +147,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     setNewTask('')
     setNewCategory(null)
     setNewDueDate('')
+    setNewTime('')
     setEditingTask(null)
     setShowAddForm(true)
   }
@@ -140,20 +158,20 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     setNewTask('')
     setNewCategory(null)
     setNewDueDate('')
+    setNewTime('')
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!newTask.trim()) return
     if (editingTask) {
-      // find which bucket stores this task
       const storageDate = Object.keys(tasks).find((d) => tasks[d].some((task) => task.id === editingTask.id))
       if (storageDate) {
         updateTasks({
           ...tasks,
           [storageDate]: tasks[storageDate].map((task) =>
             task.id === editingTask.id
-              ? { ...task, text: newTask.trim(), category: newCategory, dueDate: newDueDate || null }
+              ? { ...task, text: newTask.trim(), category: newCategory, dueDate: newDueDate || null, time: newTime || null }
               : task
           ),
         })
@@ -166,9 +184,17 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         isRoutine: false,
         category: newCategory,
         dueDate: newDueDate || null,
+        time: newTime || null,
       }
       updateTasks({ ...tasks, [selectedDate]: [...dayTasks, task] })
     }
+    closeForm()
+  }
+
+  const handleMoveToTodos = () => {
+    if (!editingTask || !onMoveToTodos) return
+    const storageDate = Object.keys(tasks).find((d) => tasks[d].some((task) => task.id === editingTask.id))
+    if (storageDate) onMoveToTodos(editingTask, storageDate)
     closeForm()
   }
 
@@ -215,7 +241,6 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
     setNewCategory((prev) => (prev === cat ? null : cat))
   }
 
-  const isEditing = editingTask !== null
   const sectionLabel = taskSectionLabel(selectedDate, today, lang)
 
   return (
@@ -233,10 +258,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
           ) : (
             <>
               <h1 className="text-lg font-bold text-gray-900">{formatDate(selectedDate)}</h1>
-              <p
-                className="text-xs mt-0.5 text-primary/70 cursor-pointer"
-                onClick={() => setSelectedDate(today)}
-              >
+              <p className="text-xs mt-0.5 text-primary/70 cursor-pointer" onClick={() => setSelectedDate(today)}>
                 {t('tap_go_back', lang)}
               </p>
             </>
@@ -248,7 +270,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         </div>
       </div>
 
-      {/* Compact week strip */}
+      {/* Week strip */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5">
         <div className="flex justify-between">
           {weekDays.map((date, i) => {
@@ -257,43 +279,28 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             const dayNum = new Date(date + 'T12:00:00').getDate()
             const dayTasksForDate = tasks[date] || []
             const hasDone = dayTasksForDate.some((task) => task.done)
-            // Amber dot: any task from any bucket with dueDate === date and not done
             const hasDue = !hasDone && Object.values(tasks).flat().some(
               (task) => task.dueDate === date && !task.done
             )
-
             return (
-              <button
-                key={date}
-                onClick={() => setSelectedDate(date)}
-                className="flex flex-col items-center gap-1"
-              >
+              <button key={date} onClick={() => setSelectedDate(date)} className="flex flex-col items-center gap-1">
                 <span className="text-[9px] text-gray-300 font-medium">{weekLabels[i]}</span>
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                    isSelected && isThisToday
-                      ? 'bg-primary text-white'
-                      : isSelected
-                      ? 'ring-2 ring-primary text-primary'
-                      : hasDone
-                      ? 'text-success'
-                      : 'text-gray-500'
-                  }`}
-                >
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                  isSelected && isThisToday ? 'bg-primary text-white'
+                  : isSelected ? 'ring-2 ring-primary text-primary'
+                  : hasDone ? 'text-success'
+                  : 'text-gray-500'
+                }`}>
                   {dayNum}
                 </div>
-                <div
-                  className={`w-1 h-1 rounded-full ${
-                    hasDone ? 'bg-success' : hasDue ? 'bg-amber-400' : 'bg-gray-200'
-                  }`}
-                />
+                <div className={`w-1 h-1 rounded-full ${hasDone ? 'bg-success' : hasDue ? 'bg-amber-400' : 'bg-gray-200'}`} />
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Stats: ring + mini stats */}
+      {/* Stats */}
       <div className="flex gap-3">
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center p-3 flex-shrink-0">
           <ScoreRing score={score} size={56} strokeWidth={5} />
@@ -309,16 +316,13 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[10px] text-gray-400">{t('remaining', lang)}</span>
-            <span className={`text-xs font-semibold ${remaining > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-              {remaining}
-            </span>
+            <span className={`text-xs font-semibold ${remaining > 0 ? 'text-red-400' : 'text-gray-400'}`}>{remaining}</span>
           </div>
         </div>
       </div>
 
-      {/* Task list */}
+      {/* Task list — agenda style */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Section label */}
         <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100">
           <p className="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">{sectionLabel}</p>
         </div>
@@ -331,10 +335,11 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
           <ul>
             {allVisibleTasks.map((task, i) => {
               const badge = dueBadge(task.dueDate, task.done, lang)
+              const timeLabel = formatTime(task.time)
               return (
                 <li
                   key={task.id}
-                  className={`flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-gray-50 ${
+                  className={`flex items-center gap-2 px-3 py-3 group transition-colors hover:bg-gray-50 ${
                     i < allVisibleTasks.length - 1 ? 'border-b border-gray-50' : ''
                   }`}
                   onTouchStart={() => startLongPress(task)}
@@ -342,6 +347,13 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   onTouchMove={cancelLongPress}
                   onMouseLeave={cancelLongPress}
                 >
+                  {/* Time column */}
+                  <span className={`text-[10px] font-bold w-12 flex-shrink-0 text-right leading-tight ${
+                    timeLabel ? 'text-primary' : 'text-gray-200'
+                  }`}>
+                    {timeLabel || '—'}
+                  </span>
+                  {/* Checkbox */}
                   <button
                     onClick={(e) => toggleTask(task.id, e.currentTarget)}
                     className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
@@ -350,12 +362,9 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   >
                     {task.done && <Checkmark />}
                   </button>
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <span
-                      className={`text-sm block ${
-                        task.done ? 'line-through text-gray-400' : 'text-gray-700'
-                      }`}
-                    >
+                    <span className={`text-sm block ${task.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
                       {task.text}
                     </span>
                     {badge && (
@@ -395,10 +404,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             </div>
             <ul>
               {todaysTodos.map((todo, i) => (
-                <li
-                  key={todo.id}
-                  className={`flex items-center gap-3 px-4 py-3 ${i < todaysTodos.length - 1 ? 'border-b border-amber-100' : ''}`}
-                >
+                <li key={todo.id} className={`flex items-center gap-3 px-4 py-3 ${i < todaysTodos.length - 1 ? 'border-b border-amber-100' : ''}`}>
                   <button
                     onClick={() => updateTodos((todos || []).map((td) => td.id === todo.id ? { ...td, done: true } : td))}
                     className="w-5 h-5 rounded-full border-2 border-amber-400 flex-shrink-0 flex items-center justify-center hover:bg-amber-200 transition-all"
@@ -424,26 +430,14 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             {MOODS.map((emoji, i) => {
               const isSelected = todayMood === i
               return (
-                <button
-                  key={i}
-                  onClick={() => setTodayMood(i)}
-                  className="flex flex-col items-center gap-1 relative"
-                >
+                <button key={i} onClick={() => setTodayMood(i)} className="flex flex-col items-center gap-1 relative">
                   {recentMood === i && (
                     <span className="absolute inset-0 rounded-full animate-ping bg-primary/20 pointer-events-none" />
                   )}
-                  <span
-                    className={`text-xl transition-all ${
-                      isSelected ? 'bg-primary/10 rounded-full p-1' : 'p-1'
-                    }`}
-                  >
+                  <span className={`text-xl transition-all ${isSelected ? 'bg-primary/10 rounded-full p-1' : 'p-1'}`}>
                     {emoji}
                   </span>
-                  <span
-                    className={`text-[9px] ${
-                      isSelected ? 'text-primary font-semibold' : 'text-gray-400'
-                    }`}
-                  >
+                  <span className={`text-[9px] ${isSelected ? 'text-primary font-semibold' : 'text-gray-400'}`}>
                     {moodLabels[i]}
                   </span>
                 </button>
@@ -461,16 +455,10 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         +
       </button>
 
-      {/* Floating modal (add / edit) */}
+      {/* Floating modal */}
       {isFormOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4"
-          onClick={closeForm}
-        >
-          <div
-            className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4" onClick={closeForm}>
+          <div className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in" onClick={(e) => e.stopPropagation()}>
             <p className="font-semibold text-gray-800 text-sm mb-3">
               {isEditing ? t('edit_task', lang) : t('add_task', lang)}
             </p>
@@ -488,9 +476,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   type="button"
                   onClick={() => toggleNewCategory('work')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    newCategory === 'work'
-                      ? 'bg-amber-50 border-amber-400 text-amber-700'
-                      : 'border-gray-200 text-gray-400'
+                    newCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 text-gray-400'
                   }`}
                 >
                   💼 {t('work', lang)}
@@ -499,9 +485,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   type="button"
                   onClick={() => toggleNewCategory('personal')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    newCategory === 'personal'
-                      ? 'bg-emerald-50 border-success text-success'
-                      : 'border-gray-200 text-gray-400'
+                    newCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 text-gray-400'
                   }`}
                 >
                   🏠 {t('personal', lang)}
@@ -510,22 +494,29 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   type="date"
                   value={newDueDate}
                   onChange={(e) => setNewDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
+                />
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
                 />
               </div>
-              <div className="flex gap-2">
+              {isEditing && (
                 <button
                   type="button"
-                  onClick={closeForm}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium"
+                  onClick={handleMoveToTodos}
+                  className="w-full py-2 rounded-xl text-xs text-primary/70 hover:bg-primary/5 border border-primary/20 transition-colors"
                 >
+                  📌 Move to To-Dos
+                </button>
+              )}
+              <div className="flex gap-2">
+                <button type="button" onClick={closeForm} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium">
                   {t('cancel', lang)}
                 </button>
-                <button
-                  type="submit"
-                  disabled={!newTask.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors"
-                >
+                <button type="submit" disabled={!newTask.trim()} className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors">
                   {isEditing ? t('save', lang) : t('add', lang)}
                 </button>
               </div>
