@@ -14,15 +14,65 @@ const Checkmark = () => (
   </svg>
 )
 const XIcon = () => (
-  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 )
 const PencilIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z" />
   </svg>
 )
+
+// FIX 5 — Full-screen confetti for perfect day
+function CelebrationBurst({ active }) {
+  const canvasRef = useRef(null)
+  useEffect(() => {
+    if (!active) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    const ctx = canvas.getContext('2d')
+    const COLORS = ['#534AB7', '#1D9E75', '#F59E0B', '#EC4899', '#3B82F6', '#EF4444', '#A78BFA']
+    const particles = Array.from({ length: 100 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: -10 - Math.random() * 20,
+      vx: (Math.random() - 0.5) * 5,
+      vy: 3 + Math.random() * 5,
+      r: 4 + Math.random() * 4,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      alpha: 1,
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.25,
+    }))
+    let frame
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      let alive = false
+      particles.forEach((p) => {
+        p.x += p.vx
+        p.y += p.vy
+        p.alpha -= 0.006
+        p.rotation += p.rotSpeed
+        if (p.alpha <= 0) return
+        alive = true
+        ctx.save()
+        ctx.globalAlpha = Math.max(0, p.alpha)
+        ctx.fillStyle = p.color
+        ctx.translate(p.x, p.y)
+        ctx.rotate(p.rotation)
+        ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r)
+        ctx.restore()
+      })
+      if (alive) frame = requestAnimationFrame(animate)
+    }
+    frame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frame)
+  }, [active])
+  if (!active) return null
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[60]" />
+}
 
 function offsetDate(base, offset) {
   const d = new Date(base + 'T12:00:00')
@@ -37,11 +87,11 @@ function greeting(lang) {
   return t('good_evening', lang)
 }
 
+// FIX 1 — 24h format, no AM/PM
 function formatTime(time) {
   if (!time) return null
-  const [h, m] = time.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+  const [h, m] = time.split(':')
+  return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`
 }
 
 function dueBadge(dueDate, done, lang) {
@@ -105,6 +155,9 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   const [editingTask, setEditingTask] = useState(null)
   const [confettiOrigin, setConfettiOrigin] = useState(null)
   const [recentMood, setRecentMood] = useState(null)
+  // FIX 5
+  const [celebrationActive, setCelebrationActive] = useState(false)
+  const [showPerfectToast, setShowPerfectToast] = useState(false)
   const inputRef = useRef(null)
   const longPressTimer = useRef(null)
 
@@ -125,6 +178,18 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
   const isFormOpen = showAddForm || editingTask !== null
   const isEditing = editingTask !== null
+
+  // FIX 5 — Perfect day detection
+  useEffect(() => {
+    if (!isToday || remaining !== 0 || allVisibleTasks.length === 0) return
+    const key = `ds_celebrated_${today}`
+    if (localStorage.getItem(key)) return
+    localStorage.setItem(key, '1')
+    setCelebrationActive(true)
+    setShowPerfectToast(true)
+    setTimeout(() => setCelebrationActive(false), 2500)
+    setTimeout(() => setShowPerfectToast(false), 3000)
+  }, [remaining, allVisibleTasks.length, isToday, today])
 
   useEffect(() => {
     if (isFormOpen) setTimeout(() => inputRef.current?.focus(), 50)
@@ -242,6 +307,19 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
   return (
     <div className="space-y-3">
       <ConfettiBurst origin={confettiOrigin} />
+      <CelebrationBurst active={celebrationActive} />
+
+      {/* FIX 5 — Perfect day toast */}
+      {showPerfectToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] bg-white dark:bg-gray-900 border border-primary/20 shadow-xl rounded-2xl px-6 py-3 animate-drop-in whitespace-nowrap">
+          <p className="text-sm font-bold text-gray-900 dark:text-white text-center">
+            {lang === 'pt-BR' ? 'Dia perfeito! 🎉' : 'Perfect day! 🎉'}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-0.5">
+            {lang === 'pt-BR' ? '100% concluído' : '100% complete'}
+          </p>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -343,12 +421,12 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   onTouchMove={cancelLongPress}
                   onMouseLeave={cancelLongPress}
                 >
-                  {/* Time column */}
-                  <span className={`text-[10px] font-bold w-12 flex-shrink-0 text-right leading-tight ${
-                    timeLabel ? 'text-primary' : 'text-gray-200 dark:text-gray-700'
-                  }`}>
-                    {timeLabel || '—'}
-                  </span>
+                  {/* FIX 1 + FIX 6 — 24h time, no dash when empty */}
+                  {timeLabel && (
+                    <span className="text-[13px] font-bold w-[46px] flex-shrink-0 text-right leading-tight text-primary">
+                      {timeLabel}
+                    </span>
+                  )}
                   {/* Checkbox */}
                   <button
                     onClick={(e) => toggleTask(task.id, e.currentTarget)}
@@ -370,15 +448,16 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                     )}
                   </div>
                   <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${catDotColor(task.category)}`} />
+                  {/* FIX 2 — bigger icons + hover bg */}
                   <button
                     onClick={() => setEditingTask(task)}
-                    className="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-primary transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-gray-400 dark:text-gray-500 hover:text-primary transition-all p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <PencilIcon />
                   </button>
                   <button
                     onClick={() => deleteTask(task.id)}
-                    className="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-red-400 transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-gray-400 dark:text-gray-500 hover:text-red-400 transition-all p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <XIcon />
                   </button>
@@ -486,12 +565,16 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                 >
                   🏠 {t('personal', lang)}
                 </button>
-                <input
-                  type="date"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none cursor-pointer"
-                />
+                {/* FIX 3 — calendar icon on date input */}
+                <div className="relative flex items-center">
+                  <span className="absolute left-2.5 text-xs pointer-events-none select-none">📅</span>
+                  <input
+                    type="date"
+                    value={newDueDate}
+                    onChange={(e) => setNewDueDate(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none cursor-pointer"
+                  />
+                </div>
                 <TimePicker value={newTime} onChange={setNewTime} />
               </div>
               {isEditing && (

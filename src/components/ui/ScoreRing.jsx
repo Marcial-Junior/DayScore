@@ -2,6 +2,7 @@ export default function ScoreRing({ score, size = 72, strokeWidth = 6 }) {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (score / 100) * circumference
+  const color = score >= 80 ? '#1D9E75' : score >= 50 ? '#EF9F27' : '#E24B4A'
 
   return (
     <div
@@ -22,7 +23,7 @@ export default function ScoreRing({ score, size = 72, strokeWidth = 6 }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#534AB7"
+          stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -31,7 +32,7 @@ export default function ScoreRing({ score, size = 72, strokeWidth = 6 }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-base font-bold text-primary leading-none">{score}%</span>
+        <span className="text-base font-bold leading-none" style={{ color }}>{score}%</span>
         <span className="text-[9px] text-gray-400 mt-0.5">Score</span>
       </div>
     </div>
