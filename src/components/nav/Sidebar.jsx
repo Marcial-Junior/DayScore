@@ -41,13 +41,13 @@ const TABS = [
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   return (
-    <aside className="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 flex flex-col z-40">
-      <div className="p-5 border-b border-gray-100">
+    <aside className="fixed left-0 top-0 h-full w-60 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col z-40">
+      <div className="p-5 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-lg">
             ⚡
           </div>
-          <span className="font-bold text-xl text-gray-900">DayScore</span>
+          <span className="font-bold text-xl text-gray-900 dark:text-white">DayScore</span>
         </div>
       </div>
 
@@ -59,7 +59,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all w-full ${
               activeTab === id
                 ? 'bg-primary text-white font-medium shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <Icon />
@@ -68,8 +68,8 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400 text-center">DayScore v1.0</p>
+      <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+        <p className="text-xs text-gray-400 dark:text-gray-600 text-center">DayScore v1.0</p>
       </div>
     </aside>
   )

@@ -38,21 +38,21 @@ export default function AuthScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 w-full max-w-sm shadow-xl">
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-xl">⚡</div>
-          <span className="font-bold text-2xl text-gray-900">DayScore</span>
+          <span className="font-bold text-2xl text-gray-900 dark:text-white">DayScore</span>
         </div>
 
-        <h2 className="text-lg font-semibold text-gray-900 text-center mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-6">
           {mode === 'login' ? 'Welcome back!' : 'Create your account'}
         </h2>
 
         <button
           type="button"
           onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-          className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors mb-4"
+          className="w-full flex items-center justify-center gap-3 border border-gray-200 dark:border-gray-700 rounded-xl py-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-4"
         >
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
@@ -64,9 +64,9 @@ export default function AuthScreen() {
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400 font-medium">or</span>
-          <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">or</span>
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -77,7 +77,7 @@ export default function AuthScreen() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400 dark:placeholder-gray-600"
             />
           )}
           <input
@@ -86,7 +86,7 @@ export default function AuthScreen() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             required
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400 dark:placeholder-gray-600"
           />
           <input
             type="password"
@@ -95,7 +95,7 @@ export default function AuthScreen() {
             placeholder="Password"
             required
             minLength={6}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400 dark:placeholder-gray-600"
           />
 
           {error && <p className="text-xs text-red-500 text-center">{error}</p>}
@@ -110,7 +110,7 @@ export default function AuthScreen() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
+        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <button
             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null) }}

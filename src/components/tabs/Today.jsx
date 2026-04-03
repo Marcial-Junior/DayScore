@@ -58,18 +58,13 @@ function dueBadge(dueDate, done, lang) {
 function urgencyScore(task) {
   if (task.done) return 9999
   const diff = task.dueDate ? daysBetween(task.dueDate, todayStr()) : null
-  // Overdue always first
   if (diff !== null && diff < 0) return -10000 + diff
-  // Tasks with a time slot: sort chronologically
   if (task.time) {
     const [h, m] = task.time.split(':').map(Number)
     return h * 60 + m
   }
-  // Due today but no time
   if (diff === 0) return 2000
-  // Future due dates
   if (diff !== null) return 3000 + diff
-  // No date, no time
   return 5000
 }
 
@@ -253,26 +248,26 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         <div>
           {isToday ? (
             <>
-              <h1 className="text-lg font-bold text-gray-900">{greeting(lang)}, {userName}!</h1>
-              <p className="text-gray-400 text-xs mt-0.5">{formatDate(today)}</p>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">{greeting(lang)}, {userName}!</h1>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{formatDate(today)}</p>
             </>
           ) : (
             <>
-              <h1 className="text-lg font-bold text-gray-900">{formatDate(selectedDate)}</h1>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">{formatDate(selectedDate)}</h1>
               <p className="text-xs mt-0.5 text-primary/70 cursor-pointer" onClick={() => setSelectedDate(today)}>
                 {t('tap_go_back', lang)}
               </p>
             </>
           )}
         </div>
-        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 flex-shrink-0">
+        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-full px-2.5 py-1 flex-shrink-0">
           <span className="text-sm">🔥</span>
           <span className="font-bold text-amber-600 text-xs">{streak}</span>
         </div>
       </div>
 
       {/* Week strip */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm px-3 py-2.5">
         <div className="flex justify-between">
           {weekDays.map((date, i) => {
             const isThisToday = date === today
@@ -285,16 +280,16 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
             )
             return (
               <button key={date} onClick={() => setSelectedDate(date)} className="flex flex-col items-center gap-1">
-                <span className="text-[9px] text-gray-300 font-medium">{weekLabels[i]}</span>
+                <span className="text-[9px] text-gray-300 dark:text-gray-600 font-medium">{weekLabels[i]}</span>
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                   isSelected && isThisToday ? 'bg-primary text-white'
                   : isSelected ? 'ring-2 ring-primary text-primary'
                   : hasDone ? 'text-success'
-                  : 'text-gray-500'
+                  : 'text-gray-500 dark:text-gray-400'
                 }`}>
                   {dayNum}
                 </div>
-                <div className={`w-1 h-1 rounded-full ${hasDone ? 'bg-success' : hasDue ? 'bg-amber-400' : 'bg-gray-200'}`} />
+                <div className={`w-1 h-1 rounded-full ${hasDone ? 'bg-success' : hasDue ? 'bg-amber-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
               </button>
             )
           })}
@@ -303,32 +298,32 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
       {/* Stats */}
       <div className="flex gap-3">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center p-3 flex-shrink-0">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-center p-3 flex-shrink-0">
           <ScoreRing score={score} size={56} strokeWidth={5} />
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 px-4 py-3 flex flex-col justify-around">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex-1 px-4 py-3 flex flex-col justify-around">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">{t('planned', lang)}</span>
-            <span className="text-xs font-semibold text-gray-800">{allVisibleTasks.length}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('planned', lang)}</span>
+            <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">{allVisibleTasks.length}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">{t('done', lang)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('done', lang)}</span>
             <span className="text-xs font-semibold text-success">{done}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">{t('remaining', lang)}</span>
-            <span className={`text-xs font-semibold ${remaining > 0 ? 'text-red-400' : 'text-gray-400'}`}>{remaining}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('remaining', lang)}</span>
+            <span className={`text-xs font-semibold ${remaining > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-600'}`}>{remaining}</span>
           </div>
         </div>
       </div>
 
       {/* Task list — agenda style */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100">
-          <p className="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">{sectionLabel}</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+          <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold">{sectionLabel}</p>
         </div>
         {allVisibleTasks.length === 0 ? (
-          <div className="py-8 text-center text-gray-400">
+          <div className="py-8 text-center text-gray-400 dark:text-gray-600">
             <p className="text-3xl mb-2">📭</p>
             <p className="text-sm">{t('no_tasks', lang)}</p>
           </div>
@@ -340,8 +335,8 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
               return (
                 <li
                   key={task.id}
-                  className={`flex items-center gap-2 px-3 py-3 group transition-colors hover:bg-gray-50 ${
-                    i < allVisibleTasks.length - 1 ? 'border-b border-gray-50' : ''
+                  className={`flex items-center gap-2 px-3 py-3 group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                    i < allVisibleTasks.length - 1 ? 'border-b border-gray-50 dark:border-gray-800' : ''
                   }`}
                   onTouchStart={() => startLongPress(task)}
                   onTouchEnd={cancelLongPress}
@@ -350,7 +345,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                 >
                   {/* Time column */}
                   <span className={`text-[10px] font-bold w-12 flex-shrink-0 text-right leading-tight ${
-                    timeLabel ? 'text-primary' : 'text-gray-200'
+                    timeLabel ? 'text-primary' : 'text-gray-200 dark:text-gray-700'
                   }`}>
                     {timeLabel || '—'}
                   </span>
@@ -358,14 +353,14 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   <button
                     onClick={(e) => toggleTask(task.id, e.currentTarget)}
                     className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                      task.done ? 'bg-success border-success' : 'border-gray-300 hover:border-primary'
+                      task.done ? 'bg-success border-success' : 'border-gray-300 dark:border-gray-600 hover:border-primary'
                     }`}
                   >
                     {task.done && <Checkmark />}
                   </button>
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <span className={`text-sm block ${task.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                    <span className={`text-sm block ${task.done ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-200'}`}>
                       {task.text}
                     </span>
                     {badge && (
@@ -377,13 +372,13 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${catDotColor(task.category)}`} />
                   <button
                     onClick={() => setEditingTask(task)}
-                    className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-primary transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-primary transition-all"
                   >
                     <PencilIcon />
                   </button>
                   <button
                     onClick={() => deleteTask(task.id)}
-                    className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-red-400 transition-all"
                   >
                     <XIcon />
                   </button>
@@ -399,20 +394,20 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
         const todaysTodos = (todos || []).filter((td) => td.dueDate === today && !td.done)
         if (!isToday || todaysTodos.length === 0) return null
         return (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-2 border-b border-amber-200">
-              <p className="text-[10px] text-amber-700 font-semibold">📌 Due today — doesn't count in score</p>
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-amber-200 dark:border-amber-800">
+              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">📌 Due today — doesn't count in score</p>
             </div>
             <ul>
               {todaysTodos.map((todo, i) => (
-                <li key={todo.id} className={`flex items-center gap-3 px-4 py-3 ${i < todaysTodos.length - 1 ? 'border-b border-amber-100' : ''}`}>
+                <li key={todo.id} className={`flex items-center gap-3 px-4 py-3 ${i < todaysTodos.length - 1 ? 'border-b border-amber-100 dark:border-amber-900' : ''}`}>
                   <button
                     onClick={() => updateTodos((todos || []).map((td) => td.id === todo.id ? { ...td, done: true } : td))}
-                    className="w-5 h-5 rounded-full border-2 border-amber-400 flex-shrink-0 flex items-center justify-center hover:bg-amber-200 transition-all"
+                    className="w-5 h-5 rounded-full border-2 border-amber-400 flex-shrink-0 flex items-center justify-center hover:bg-amber-200 dark:hover:bg-amber-900 transition-all"
                   />
-                  <span className="flex-1 text-sm text-amber-900">{todo.title}</span>
+                  <span className="flex-1 text-sm text-amber-900 dark:text-amber-300">{todo.title}</span>
                   {todo.category && (
-                    <span className="text-[9px] text-amber-600 font-medium capitalize">{todo.category}</span>
+                    <span className="text-[9px] text-amber-600 dark:text-amber-500 font-medium capitalize">{todo.category}</span>
                   )}
                 </li>
               ))}
@@ -423,8 +418,8 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
 
       {/* Mood selector */}
       {!isFuture && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-          <h2 className="text-[10px] text-gray-400 mb-2">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm px-4 py-3">
+          <h2 className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">
             {isToday ? t('how_feeling', lang) : t('mood_that_day', lang)}
           </h2>
           <div className="flex justify-around">
@@ -438,7 +433,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   <span className={`text-xl transition-all ${isSelected ? 'bg-primary/10 rounded-full p-1' : 'p-1'}`}>
                     {emoji}
                   </span>
-                  <span className={`text-[9px] ${isSelected ? 'text-primary font-semibold' : 'text-gray-400'}`}>
+                  <span className={`text-[9px] ${isSelected ? 'text-primary font-semibold' : 'text-gray-400 dark:text-gray-600'}`}>
                     {moodLabels[i]}
                   </span>
                 </button>
@@ -459,8 +454,8 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
       {/* Floating modal */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-16 px-4" onClick={closeForm}>
-          <div className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in" onClick={(e) => e.stopPropagation()}>
-            <p className="font-semibold text-gray-800 text-sm mb-3">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in" onClick={(e) => e.stopPropagation()}>
+            <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3">
               {isEditing ? t('edit_task', lang) : t('add_task', lang)}
             </p>
             <form onSubmit={handleSubmit} className="space-y-3">
@@ -470,14 +465,14 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
                 placeholder={t('task_placeholder', lang)}
-                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400 dark:placeholder-gray-600"
               />
               <div className="flex gap-2 flex-wrap items-center">
                 <button
                   type="button"
                   onClick={() => toggleNewCategory('work')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    newCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 text-gray-400'
+                    newCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   💼 {t('work', lang)}
@@ -486,7 +481,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   type="button"
                   onClick={() => toggleNewCategory('personal')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    newCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 text-gray-400'
+                    newCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   🏠 {t('personal', lang)}
@@ -495,7 +490,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   type="date"
                   value={newDueDate}
                   onChange={(e) => setNewDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none cursor-pointer"
                 />
                 <TimePicker value={newTime} onChange={setNewTime} />
               </div>
@@ -509,7 +504,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                 </button>
               )}
               <div className="flex gap-2">
-                <button type="button" onClick={closeForm} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium">
+                <button type="button" onClick={closeForm} className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 font-medium">
                   {t('cancel', lang)}
                 </button>
                 <button type="submit" disabled={!newTask.trim()} className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors">

@@ -30,6 +30,11 @@ if (savedAccent) {
   if (found) document.documentElement.style.setProperty('--primary-rgb', found.rgb)
 }
 
+// Apply saved dark mode before first render
+if (localStorage.getItem('ds_dark') === 'true') {
+  document.documentElement.classList.add('dark')
+}
+
 function App() {
   const [session, setSession] = useState(undefined) // undefined = loading
   const [activeTab, setActiveTab] = useState('today')

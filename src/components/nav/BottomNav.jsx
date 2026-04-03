@@ -41,13 +41,13 @@ const TABS = [
 
 export default function BottomNav({ activeTab, setActiveTab }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex z-40 safe-bottom">
       {TABS.map(({ id, label, Icon }) => (
         <button
           key={id}
           onClick={() => setActiveTab(id)}
           className={`flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors ${
-            activeTab === id ? 'text-primary' : 'text-gray-400'
+            activeTab === id ? 'text-primary' : 'text-gray-400 dark:text-gray-600'
           }`}
         >
           <Icon />

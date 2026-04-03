@@ -10,14 +10,12 @@ export default function History({ tasks, routines, mood, streak, lang }) {
   const weekDays = getWeekWindow(0)
   const weekLabels = t('week_mon_sun', lang)
 
-  // Summary stats
   const scores = days.map((d) => calcDayScore(tasks[d] || []))
   const activeDays = days.filter((d) => (tasks[d] || []).length > 0).length
   const avgScore = activeDays > 0
     ? Math.round(scores.filter((_, i) => (tasks[days[i]] || []).length > 0).reduce((a, b) => a + b, 0) / activeDays)
     : 0
 
-  // Best day
   const bestScore = Math.max(0, ...scores)
   const bestDayIndex = scores.indexOf(bestScore)
   const bestDate = bestScore > 0 ? days[bestDayIndex] : null
@@ -26,7 +24,6 @@ export default function History({ tasks, routines, mood, streak, lang }) {
     : null
   const bestDayTaskCount = bestDate ? (tasks[bestDate] || []).filter((task) => task.done).length : 0
 
-  // Bar color
   const barColor = (date, score) => {
     if (date === today) return '#534AB7'
     if (score === bestScore && score > 0) return '#1D9E75'
@@ -39,29 +36,29 @@ export default function History({ tasks, routines, mood, streak, lang }) {
   return (
     <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">{t('history', lang)}</h1>
-        <p className="text-gray-400 text-xs mt-0.5">{t('history_sub', lang)}</p>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t('history', lang)}</h1>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{t('history_sub', lang)}</p>
       </div>
 
       {/* Summary stats */}
       <div className="flex gap-2">
-        <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center">
+        <div className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-3 text-center">
           <p className="text-base font-bold text-primary">{avgScore}%</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{t('avg_score', lang)}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t('avg_score', lang)}</p>
         </div>
-        <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center">
+        <div className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-3 text-center">
           <p className="text-base font-bold text-success">{activeDays}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{t('active_days', lang)}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t('active_days', lang)}</p>
         </div>
-        <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center">
+        <div className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-3 text-center">
           <p className="text-base font-bold text-amber-500">🔥 {streak}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{t('streak_label', lang)}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t('streak_label', lang)}</p>
         </div>
       </div>
 
       {/* Bar chart */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        <h2 className="font-semibold text-gray-900 text-xs mb-3">{t('daily_score', lang)}</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white text-xs mb-3">{t('daily_score', lang)}</h2>
         <div className="flex items-end gap-1.5" style={{ height: `${maxBarH + 18}px` }}>
           {days.map((date, i) => {
             const score = scores[i]
@@ -72,7 +69,7 @@ export default function History({ tasks, routines, mood, streak, lang }) {
             return (
               <div key={date} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5">
                 {score > 0 && (
-                  <span className={`text-[8px] font-medium ${isToday ? 'text-primary font-bold' : 'text-gray-400'}`}>
+                  <span className={`text-[8px] font-medium ${isToday ? 'text-primary font-bold' : 'text-gray-400 dark:text-gray-500'}`}>
                     {score}%
                   </span>
                 )}
@@ -80,7 +77,7 @@ export default function History({ tasks, routines, mood, streak, lang }) {
                   className="w-full rounded-t-sm transition-all duration-500"
                   style={{ height: `${barH}px`, backgroundColor: color }}
                 />
-                <span className={`text-[9px] ${isToday ? 'font-bold text-primary' : 'text-gray-400'}`}>
+                <span className={`text-[9px] ${isToday ? 'font-bold text-primary' : 'text-gray-400 dark:text-gray-500'}`}>
                   {dayLabel(date)}
                 </span>
               </div>
@@ -90,15 +87,15 @@ export default function History({ tasks, routines, mood, streak, lang }) {
       </div>
 
       {/* Mood this week */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        <h2 className="font-semibold text-gray-900 text-xs mb-3">{t('mood_week', lang)}</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white text-xs mb-3">{t('mood_week', lang)}</h2>
         <div className="flex justify-between">
           {weekDays.map((date, i) => {
             const moodIdx = mood?.[date] ?? null
             return (
               <div key={date} className="flex flex-col items-center gap-1">
                 <span className="text-lg">{moodIdx !== null ? MOODS[moodIdx] : '·'}</span>
-                <span className="text-[9px] text-gray-300">{weekLabels[i]}</span>
+                <span className="text-[9px] text-gray-300 dark:text-gray-600">{weekLabels[i]}</span>
               </div>
             )
           })}

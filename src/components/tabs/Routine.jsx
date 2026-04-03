@@ -6,7 +6,6 @@ import TimePicker from '../ui/TimePicker'
 const ICON_BG_COLORS = ['#fff8e6', '#e8f5ee', '#EEEDFE', '#E6F1FB', '#FAEEDA', '#FCEBEB']
 const DEFAULT_ICONS = ['⭐', '✅', '💪', '🎯', '📌', '🔑', '⚡', '🌟']
 
-// Mon-Fri day-of-week indices (JS: 0=Sun)
 const WEEKDAY_INDICES = [1, 2, 3, 4, 5]
 
 const EMOJI_BY_CATEGORY = {
@@ -88,14 +87,14 @@ function ExpandedEmojiPicker({ selected, onSelect }) {
     : baseList
 
   return (
-    <div className="mt-2 bg-gray-50 rounded-xl p-3 border border-gray-100">
-      <p className="text-[10px] font-semibold text-gray-700 mb-2">Choose an icon</p>
+    <div className="mt-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+      <p className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 mb-2">Choose an icon</p>
       <input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="🔍  Search emoji..."
-        className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-2"
+        className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg px-2.5 py-1.5 text-xs placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-2"
       />
       <div className="flex gap-1.5 overflow-x-auto pb-1 mb-2 scrollbar-hide">
         {CATEGORIES.map((cat) => (
@@ -122,14 +121,14 @@ function ExpandedEmojiPicker({ selected, onSelect }) {
             className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${
               selected === em
                 ? 'bg-primary/10 outline outline-2 outline-primary'
-                : 'hover:bg-gray-200'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             {em}
           </button>
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-7 text-center text-[10px] text-gray-400 py-2">No results</p>
+          <p className="col-span-7 text-center text-[10px] text-gray-400 dark:text-gray-500 py-2">No results</p>
         )}
       </div>
     </div>
@@ -162,7 +161,6 @@ export default function Routine({ routines, updateRoutines, lang }) {
   const isFormOpen = showAddForm || editingRoutine !== null
   const isEditing = editingRoutine !== null
 
-  // Populate form when editing
   useEffect(() => {
     if (editingRoutine) {
       const emoji = extractEmoji(editingRoutine.name)
@@ -207,7 +205,6 @@ export default function Routine({ routines, updateRoutines, lang }) {
     return a.time.localeCompare(b.time)
   })
 
-  // Get Mon-Fri dates for the current week
   const weekDays = getWeekWindow(0)
   const monFriDates = WEEKDAY_INDICES.map((dow) => weekDays[dow - 1])
   const weekMtwtf = t('week_mtwtf', lang)
@@ -259,24 +256,24 @@ export default function Routine({ routines, updateRoutines, lang }) {
   return (
     <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">{t('routine', lang)}</h1>
-        <p className="text-gray-400 text-xs mt-0.5">{t('routine_sub', lang)}</p>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t('routine', lang)}</h1>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{t('routine_sub', lang)}</p>
       </div>
 
       {/* Date navigation */}
-      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-2.5">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm px-4 py-2.5">
         <button onClick={() => navigateDay(-1)} disabled={!canGoPrev}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-colors">
+          className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition-colors">
           <ChevronLeft />
         </button>
         <div className="text-center">
-          <p className={`font-semibold text-sm ${isToday ? 'text-primary' : 'text-gray-800'}`}>
+          <p className={`font-semibold text-sm ${isToday ? 'text-primary' : 'text-gray-800 dark:text-gray-100'}`}>
             {dateLabel(selectedDate, today, lang)}
           </p>
-          {isPast && <p className="text-[10px] text-gray-400 mt-0.5">{t('retroactive', lang)}</p>}
+          {isPast && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t('retroactive', lang)}</p>}
         </div>
         <button onClick={() => navigateDay(1)} disabled={!canGoNext}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-colors">
+          className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition-colors">
           <ChevronRight />
         </button>
       </div>
@@ -291,13 +288,11 @@ export default function Routine({ routines, updateRoutines, lang }) {
           const iconBg = ICON_BG_COLORS[idx % ICON_BG_COLORS.length]
           const rstreak = calcRoutineStreak(routine.completions)
 
-          // Week dots (Mon-Fri)
           const doneThisWeek = monFriDates.filter((d) => d <= today && routine.completions?.[d]).length
           const totalThisWeek = monFriDates.filter((d) => d <= today).length
 
           return (
-            <div key={routine.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-3">
-              {/* Icon */}
+            <div key={routine.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-3 flex items-center gap-3">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                 style={{ backgroundColor: iconBg }}
@@ -305,10 +300,9 @@ export default function Routine({ routines, updateRoutines, lang }) {
                 {iconContent}
               </div>
 
-              {/* Body */}
               <div className="flex-1 min-w-0">
                 <button
-                  className="font-semibold text-sm text-gray-900 truncate text-left w-full hover:text-primary transition-colors"
+                  className="font-semibold text-sm text-gray-900 dark:text-white truncate text-left w-full hover:text-primary transition-colors"
                   onClick={() => setEditingRoutine(routine)}
                 >
                   {displayName}
@@ -316,7 +310,6 @@ export default function Routine({ routines, updateRoutines, lang }) {
                 {routine.time && (
                   <p className="text-xs font-bold text-primary mb-1.5">{formatTime(routine.time)}</p>
                 )}
-                {/* Day dots + streak */}
                 <div className="flex items-center justify-between mt-1">
                   <div className="flex gap-1">
                     {monFriDates.map((date, i) => {
@@ -327,12 +320,12 @@ export default function Routine({ routines, updateRoutines, lang }) {
                         <div key={date}
                           className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-semibold ${
                             isFutureDate
-                              ? 'bg-gray-100 text-gray-300'
+                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600'
                               : done
                               ? 'bg-success text-white'
                               : isThisToday
                               ? 'bg-primary text-white'
-                              : 'bg-gray-100 text-gray-400'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                           }`}
                         >
                           {weekMtwtf[i]}
@@ -346,11 +339,10 @@ export default function Routine({ routines, updateRoutines, lang }) {
                 </div>
               </div>
 
-              {/* Checkmark */}
               <button
                 onClick={() => toggleCompletion(routine.id)}
                 className={`w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                  isDone ? 'bg-success border-success' : isPast ? 'border-gray-200' : 'border-gray-300 hover:border-primary'
+                  isDone ? 'bg-success border-success' : isPast ? 'border-gray-200 dark:border-gray-700' : 'border-gray-300 dark:border-gray-600 hover:border-primary'
                 }`}
               >
                 {isDone && <Checkmark />}
@@ -359,37 +351,35 @@ export default function Routine({ routines, updateRoutines, lang }) {
           )
         })}
 
-        {/* Empty state if no active routines but routines exist */}
         {sortedRoutines.length === 0 && routines.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-100 py-8 text-center text-gray-400">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 py-8 text-center text-gray-400 dark:text-gray-600">
             <p className="text-sm">{t('no_habits_day', lang)}</p>
           </div>
         )}
 
-        {/* Dashed add row */}
         <button
           onClick={openAdd}
-          className="w-full bg-white rounded-xl border border-dashed border-gray-300 py-3 flex items-center justify-center gap-2 text-gray-400 hover:text-primary hover:border-primary transition-colors text-sm"
+          className="w-full bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 py-3 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500 hover:text-primary hover:border-primary transition-colors text-sm"
         >
           <span className="text-base">➕</span>
           {t('add_new_habit', lang)}
         </button>
       </div>
 
-      {/* Floating modal (add / edit) */}
+      {/* Floating modal */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-10 px-4 overflow-y-auto"
           onClick={closeForm}>
-          <div className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in my-4"
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in my-4"
             onClick={(e) => e.stopPropagation()}>
-            <p className="font-semibold text-gray-800 text-sm mb-3">
+            <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3">
               {isEditing ? t('edit_habit', lang) : t('add_habit', lang)}
             </p>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="flex gap-2">
                 <button type="button" onClick={() => setShowEmojiPicker((v) => !v)}
-                  className={`w-10 h-10 flex items-center justify-center bg-gray-50 border rounded-lg text-xl hover:bg-gray-100 transition-colors flex-shrink-0 ${
-                    showEmojiPicker ? 'border-primary' : 'border-gray-200'
+                  className={`w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-gray-800 border rounded-lg text-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 ${
+                    showEmojiPicker ? 'border-primary' : 'border-gray-200 dark:border-gray-700'
                   }`}>
                   {newEmoji || '😊'}
                 </button>
@@ -398,13 +388,13 @@ export default function Routine({ routines, updateRoutines, lang }) {
                   value={newHabit}
                   onChange={(e) => setNewHabit(e.target.value)}
                   placeholder={t('habit_placeholder', lang)}
-                  className="flex-1 bg-gray-50 border border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
+                  className="flex-1 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400 dark:placeholder-gray-600"
                   autoFocus
                 />
                 <TimePicker
                   value={newTime}
                   onChange={setNewTime}
-                  triggerClassName="w-20 bg-gray-50 border border-transparent rounded-xl px-2 py-2 text-sm text-gray-700 text-center focus:outline-none flex-shrink-0"
+                  triggerClassName="w-20 bg-gray-50 dark:bg-gray-800 border border-transparent rounded-xl px-2 py-2 text-sm text-gray-700 dark:text-gray-300 text-center focus:outline-none flex-shrink-0"
                 />
               </div>
 
@@ -416,12 +406,12 @@ export default function Routine({ routines, updateRoutines, lang }) {
               )}
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 flex-shrink-0">{t('active_label', lang)}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{t('active_label', lang)}</span>
                 <div className="flex gap-1">
                   {daySunSat.map((label, i) => (
                     <button key={i} type="button" onClick={() => toggleActiveDay(i)}
                       className={`w-7 h-7 rounded-full text-[11px] font-semibold transition-colors ${
-                        newActiveDays.includes(i) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'
+                        newActiveDays.includes(i) ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                       }`}>
                       {label}
                     </button>
@@ -432,14 +422,14 @@ export default function Routine({ routines, updateRoutines, lang }) {
                 <button
                   type="button"
                   onClick={() => { deleteRoutine(editingRoutine.id); closeForm() }}
-                  className="w-full py-2 rounded-xl text-xs text-red-400 hover:bg-red-50 transition-colors"
+                  className="w-full py-2 rounded-xl text-xs text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 >
                   🗑️ Delete habit
                 </button>
               )}
               <div className="flex gap-2">
                 <button type="button" onClick={closeForm}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium">
+                  className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 font-medium">
                   {t('cancel', lang)}
                 </button>
                 <button type="submit" disabled={!newHabit.trim()}

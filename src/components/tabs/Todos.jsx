@@ -135,25 +135,25 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
     return (
       <div
         key={todo.id}
-        className={`flex items-center gap-3 px-4 py-3 group hover:bg-gray-50 transition-colors ${
-          i < arr.length - 1 ? 'border-b border-gray-50' : ''
+        className={`flex items-center gap-3 px-4 py-3 group hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+          i < arr.length - 1 ? 'border-b border-gray-50 dark:border-gray-800' : ''
         }`}
       >
         <button
           onClick={() => toggleTodo(todo.id)}
           className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-            todo.done ? 'bg-success border-success' : 'border-gray-300 hover:border-primary'
+            todo.done ? 'bg-success border-success' : 'border-gray-300 dark:border-gray-600 hover:border-primary'
           }`}
         >
           {todo.done && <Checkmark />}
         </button>
         <div className="flex-1 min-w-0">
-          <span className={`text-sm block truncate ${todo.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+          <span className={`text-sm block truncate ${todo.done ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-100'}`}>
             {todo.title}
           </span>
           {dueDateLabel && !todo.done && (
             <span className={`text-[10px] font-medium ${
-              diff !== null && diff < 0 ? 'text-red-500' : isUrgent ? 'text-amber-500' : 'text-gray-400'
+              diff !== null && diff < 0 ? 'text-red-500' : isUrgent ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'
             }`}>
               {dueDateLabel}
             </span>
@@ -167,13 +167,13 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_COLORS[todo.priority] || 'bg-gray-300'}`} />
         <button
           onClick={() => openEdit(todo)}
-          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-primary transition-all"
+          className="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-primary transition-all"
         >
           <PencilIcon />
         </button>
         <button
           onClick={() => deleteTodo(todo.id)}
-          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all"
+          className="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-red-400 transition-all"
         >
           <XIcon />
         </button>
@@ -184,8 +184,8 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
   return (
     <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">To-Dos</h1>
-        <p className="text-gray-400 text-xs mt-0.5">
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">To-Dos</h1>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
           {pendingCount} pending{overdueCount > 0 ? ` · ${overdueCount} overdue` : ''}
         </p>
       </div>
@@ -197,7 +197,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
             key={id}
             onClick={() => setFilter(id)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              filter === id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              filter === id ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {label}
@@ -207,8 +207,8 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
 
       {/* OVERDUE */}
       {overdue.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-1.5 bg-red-50 border-b border-red-100">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+          <div className="px-4 py-1.5 bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900">
             <p className="text-[9px] text-red-500 uppercase tracking-wider font-bold">Overdue</p>
           </div>
           {overdue.map((td, i) => renderRow(td, i, overdue))}
@@ -217,9 +217,9 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
 
       {/* UPCOMING */}
       {upcoming.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100">
-            <p className="text-[9px] text-gray-400 uppercase tracking-wider font-bold">Upcoming</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+          <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+            <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-bold">Upcoming</p>
           </div>
           {upcoming.map((td, i) => renderRow(td, i, upcoming))}
         </div>
@@ -227,7 +227,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
 
       {/* Empty state */}
       {showSections && overdue.length === 0 && upcoming.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm py-10 text-center text-gray-400">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm py-10 text-center text-gray-400 dark:text-gray-600">
           <p className="text-3xl mb-2">📌</p>
           <p className="text-sm">No to-dos yet. Tap + to add one!</p>
         </div>
@@ -235,14 +235,14 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
 
       {/* COMPLETED */}
       {filter === 'done' && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100">
-            <p className="text-[9px] text-gray-400 uppercase tracking-wider font-bold">Completed</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+          <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+            <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-bold">Completed</p>
           </div>
           {completed.length > 0 ? (
             completed.map((td, i) => renderRow(td, i, completed))
           ) : (
-            <div className="py-8 text-center text-gray-400 text-sm">No completed to-dos yet.</div>
+            <div className="py-8 text-center text-gray-400 dark:text-gray-600 text-sm">No completed to-dos yet.</div>
           )}
         </div>
       )}
@@ -262,10 +262,10 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
           onClick={() => setShowAddForm(false)}
         >
           <div
-            className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
+            className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="font-semibold text-gray-800 text-sm mb-3">Add To-Do</p>
+            <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3">Add To-Do</p>
             <form onSubmit={addTodo} className="space-y-3">
               <input
                 type="text"
@@ -273,14 +273,14 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="To-do title..."
                 autoFocus
-                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400 dark:placeholder-gray-600"
               />
               <div className="flex gap-2 flex-wrap items-center">
                 <button
                   type="button"
                   onClick={() => setNewCategory((c) => (c === 'work' ? null : 'work'))}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    newCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 text-gray-400'
+                    newCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   💼 Work
@@ -289,7 +289,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                   type="button"
                   onClick={() => setNewCategory((c) => (c === 'personal' ? null : 'personal'))}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    newCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 text-gray-400'
+                    newCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   🏠 Personal
@@ -298,11 +298,11 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                   type="date"
                   value={newDueDate}
                   onChange={(e) => setNewDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none cursor-pointer"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 flex-shrink-0">Priority:</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">Priority:</span>
                 <div className="flex gap-1">
                   {[['high', 'High'], ['medium', 'Medium'], ['low', 'Low']].map(([val, label]) => (
                     <button
@@ -310,7 +310,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                       type="button"
                       onClick={() => setNewPriority(val)}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                        newPriority === val ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+                        newPriority === val ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                       }`}
                     >
                       {label}
@@ -322,7 +322,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium"
+                  className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 font-medium"
                 >
                   Cancel
                 </button>
@@ -346,10 +346,10 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
           onClick={closeEdit}
         >
           <div
-            className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
+            className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-2xl w-full max-w-sm animate-drop-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="font-semibold text-gray-800 text-sm mb-3">Edit To-Do</p>
+            <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-3">Edit To-Do</p>
             <form onSubmit={saveEdit} className="space-y-3">
               <input
                 type="text"
@@ -357,14 +357,14 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="To-do title..."
                 autoFocus
-                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400"
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-transparent focus:border-primary/20 placeholder-gray-400 dark:placeholder-gray-600"
               />
               <div className="flex gap-2 flex-wrap items-center">
                 <button
                   type="button"
                   onClick={() => setEditCategory((c) => (c === 'work' ? null : 'work'))}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    editCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 text-gray-400'
+                    editCategory === 'work' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   💼 Work
@@ -373,7 +373,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                   type="button"
                   onClick={() => setEditCategory((c) => (c === 'personal' ? null : 'personal'))}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    editCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 text-gray-400'
+                    editCategory === 'personal' ? 'bg-emerald-50 border-success text-success' : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   🏠 Personal
@@ -382,11 +382,11 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                   type="date"
                   value={editDueDate}
                   onChange={(e) => setEditDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none cursor-pointer"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 flex-shrink-0">Priority:</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">Priority:</span>
                 <div className="flex gap-1">
                   {[['high', 'High'], ['medium', 'Medium'], ['low', 'Low']].map(([val, label]) => (
                     <button
@@ -394,7 +394,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                       type="button"
                       onClick={() => setEditPriority(val)}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                        editPriority === val ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+                        editPriority === val ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                       }`}
                     >
                       {label}
@@ -415,7 +415,7 @@ export default function Todos({ todos, updateTodos, onMoveToTask }) {
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium"
+                  className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 font-medium"
                 >
                   Cancel
                 </button>

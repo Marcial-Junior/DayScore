@@ -1,8 +1,8 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 
 const ITEM_H = 48
-const VISIBLE = 5   // items visible at once
-const COL_H = ITEM_H * VISIBLE  // 240px
+const VISIBLE = 5
+const COL_H = ITEM_H * VISIBLE
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = Array.from({ length: 60 }, (_, i) => i)
@@ -12,12 +12,11 @@ function Column({ items, value, onChange }) {
   const timerRef = useRef(null)
   const idx = Math.max(0, items.indexOf(value))
 
-  // Scroll to value on mount (no animation — instant)
   useEffect(() => {
     if (ref.current) {
       ref.current.scrollTop = idx * ITEM_H
     }
-  }, [])  // mount only
+  }, [])
 
   const onScroll = useCallback(() => {
     clearTimeout(timerRef.current)
@@ -32,25 +31,19 @@ function Column({ items, value, onChange }) {
 
   return (
     <div className="relative flex-1" style={{ height: COL_H }}>
-      {/* Scroll column */}
       <div
         ref={ref}
         onScroll={onScroll}
         className="h-full overflow-y-scroll"
-        style={{
-          scrollSnapType: 'y mandatory',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
+        style={{ scrollSnapType: 'y mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <style>{`.no-scrollbar::-webkit-scrollbar { display: none }`}</style>
         <div style={{ paddingTop: ITEM_H * 2, paddingBottom: ITEM_H * 2 }}>
           {items.map((item) => (
             <div
               key={item}
               style={{ height: ITEM_H, scrollSnapAlign: 'center' }}
               className={`flex items-center justify-center text-2xl font-mono transition-colors select-none ${
-                item === value ? 'text-primary font-extrabold' : 'text-gray-300 font-medium'
+                item === value ? 'text-primary font-extrabold' : 'text-gray-300 dark:text-gray-600 font-medium'
               }`}
             >
               {String(item).padStart(2, '0')}
@@ -58,7 +51,7 @@ function Column({ items, value, onChange }) {
           ))}
         </div>
       </div>
-      {/* Highlight band at center */}
+      {/* Highlight band */}
       <div
         className="pointer-events-none absolute inset-x-0 border-t-2 border-b-2 border-primary/20 bg-primary/5"
         style={{ top: ITEM_H * 2, height: ITEM_H }}
@@ -108,7 +101,7 @@ export default function TimePicker({ value, onChange, triggerClassName }) {
           `px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
             label
               ? 'border-primary/40 text-primary bg-primary/5'
-              : 'border-gray-200 text-gray-400 bg-white'
+              : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800'
           }`
         }
       >
@@ -121,24 +114,21 @@ export default function TimePicker({ value, onChange, triggerClassName }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full bg-white rounded-t-2xl pb-8 animate-slide-up"
+            className="w-full bg-white dark:bg-gray-900 rounded-t-2xl pb-8 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Handle bar */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-200" />
+              <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
             </div>
-
-            {/* Title row */}
             <div className="flex items-center justify-between px-5 py-3">
               <button
                 type="button"
                 onClick={clear}
-                className="text-sm text-gray-400 hover:text-red-400 transition-colors"
+                className="text-sm text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors"
               >
                 Clear
               </button>
-              <span className="text-sm font-semibold text-gray-800">Select time</span>
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Select time</span>
               <button
                 type="button"
                 onClick={confirm}
@@ -147,16 +137,12 @@ export default function TimePicker({ value, onChange, triggerClassName }) {
                 Done
               </button>
             </div>
-
-            {/* Columns */}
             <div className="flex items-center px-8 gap-2">
               <Column items={HOURS} value={h} onChange={setH} />
-              <span className="text-3xl font-bold text-gray-300 flex-shrink-0 pb-1">:</span>
+              <span className="text-3xl font-bold text-gray-300 dark:text-gray-600 flex-shrink-0 pb-1">:</span>
               <Column items={MINUTES} value={m} onChange={setM} />
             </div>
-
-            {/* Live preview */}
-            <p className="text-center text-xs text-gray-400 mt-3">
+            <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-3">
               {String(h).padStart(2, '0')}:{String(m).padStart(2, '0')}
             </p>
           </div>

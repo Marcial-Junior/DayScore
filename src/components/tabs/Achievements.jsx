@@ -23,7 +23,7 @@ export default function Achievements({ tasks, routines, streak, lang }) {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">{t('awards', lang)}</h1>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t('awards', lang)}</h1>
         <p className="text-xs mt-0.5" style={{ color: '#1D9E75' }}>
           {unlockedCount}/{BADGES.length} {t('unlocked', lang)}
         </p>
@@ -49,7 +49,7 @@ export default function Achievements({ tasks, routines, streak, lang }) {
       </div>
 
       {/* Achievements grid */}
-      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold px-1">{t('achievements_label', lang)}</p>
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold px-1">{t('achievements_label', lang)}</p>
       <div className="grid grid-cols-2 gap-3">
         {BADGES.map((badge) => {
           const unlocked = badge.check(ctx)
@@ -57,7 +57,7 @@ export default function Achievements({ tasks, routines, streak, lang }) {
           return (
             <div
               key={badge.id}
-              className={`bg-white rounded-xl border border-gray-100 p-4 flex flex-col items-center gap-2 transition-all ${
+              className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col items-center gap-2 transition-all ${
                 unlocked ? 'shadow-sm' : 'opacity-40'
               }`}
             >
@@ -67,9 +67,9 @@ export default function Achievements({ tasks, routines, streak, lang }) {
               >
                 {badge.icon}
               </div>
-              <p className="font-semibold text-xs text-gray-900 text-center leading-tight">{badge.title}</p>
-              <p className="text-[10px] text-gray-400 text-center leading-tight">{badge.desc}</p>
-              <div className="w-full h-[3px] bg-gray-100 rounded-full overflow-hidden">
+              <p className="font-semibold text-xs text-gray-900 dark:text-white text-center leading-tight">{badge.title}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center leading-tight">{badge.desc}</p>
+              <div className="w-full h-[3px] bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, backgroundColor: badge.color }}

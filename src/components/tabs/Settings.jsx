@@ -19,18 +19,22 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
   const initials = getInitials(userName)
 
   const [accent, setAccent] = useState(() => localStorage.getItem('ds_accent') || '#534AB7')
+  const [dark, setDark] = useState(() => localStorage.getItem('ds_dark') === 'true')
   const [reminder, setReminder] = useState(() => localStorage.getItem('ds_reminder') === 'true')
   const [reminderTime, setReminderTime] = useState(() => localStorage.getItem('ds_reminder_time') || '08:00')
   const [resetting, setResetting] = useState(false)
 
-  // Apply accent color via CSS variable on mount and change
   useEffect(() => {
     const found = ACCENT_COLORS.find((c) => c.value === accent)
-    if (found) {
-      document.documentElement.style.setProperty('--primary-rgb', found.rgb)
-    }
+    if (found) document.documentElement.style.setProperty('--primary-rgb', found.rgb)
     localStorage.setItem('ds_accent', accent)
   }, [accent])
+
+  useEffect(() => {
+    if (dark) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+    localStorage.setItem('ds_dark', dark)
+  }, [dark])
 
   useEffect(() => {
     localStorage.setItem('ds_reminder', reminder)
@@ -72,35 +76,40 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">{t('settings', lang)}</h1>
-        <p className="text-gray-400 text-xs mt-0.5">{t('settings_sub', lang)}</p>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t('settings', lang)}</h1>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{t('settings_sub', lang)}</p>
       </div>
 
       {/* Profile card */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm px-4 py-3 flex items-center gap-3">
         <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-sm">{userName}</p>
-          <p className="text-xs text-gray-400 mt-0.5">{session?.user?.email}</p>
+          <p className="font-semibold text-gray-900 dark:text-white text-sm">{userName}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{session?.user?.email}</p>
         </div>
       </div>
 
       {/* Appearance */}
       <div>
-        <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1.5 px-1">{t('appearance', lang)}</p>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Dark mode — coming soon */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 opacity-50">
-            <div className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-sm flex-shrink-0">🌙</div>
-            <span className="flex-1 text-sm text-gray-800">{t('dark_mode', lang)}</span>
-            <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-medium">{t('soon', lang)}</span>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-1.5 px-1">{t('appearance', lang)}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+          {/* Dark mode toggle */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800">
+            <div className="w-8 h-8 rounded-lg bg-gray-900 dark:bg-gray-700 flex items-center justify-center text-sm flex-shrink-0">🌙</div>
+            <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('dark_mode', lang)}</span>
+            <button
+              onClick={() => setDark((v) => !v)}
+              className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${dark ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${dark ? 'translate-x-5' : 'translate-x-1'}`} />
+            </button>
           </div>
           {/* Accent color */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm flex-shrink-0">🎨</div>
-            <span className="flex-1 text-sm text-gray-800">{t('accent_color', lang)}</span>
+            <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('accent_color', lang)}</span>
             <div className="flex gap-2">
               {ACCENT_COLORS.map(({ value }) => (
                 <button
@@ -119,12 +128,12 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
           {/* Language */}
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center text-sm flex-shrink-0">🌐</div>
-            <span className="flex-1 text-sm text-gray-800">{t('language', lang)}</span>
+            <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('language', lang)}</span>
             <div className="flex gap-1">
               <button
                 onClick={() => onLangChange('en')}
                 className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                  lang === 'en' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  lang === 'en' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 EN
@@ -132,7 +141,7 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
               <button
                 onClick={() => onLangChange('pt-BR')}
                 className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                  lang === 'pt-BR' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  lang === 'pt-BR' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 PT
@@ -144,14 +153,14 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
 
       {/* Notifications */}
       <div>
-        <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1.5 px-1">{t('notifications', lang)}</p>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-1.5 px-1">{t('notifications', lang)}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800">
             <div className="w-8 h-8 rounded-lg bg-[#FAEEDA] flex items-center justify-center text-sm flex-shrink-0">🔔</div>
-            <span className="flex-1 text-sm text-gray-800">{t('daily_reminder', lang)}</span>
+            <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('daily_reminder', lang)}</span>
             <button
               onClick={() => setReminder((v) => !v)}
-              className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${reminder ? 'bg-primary' : 'bg-gray-200'}`}
+              className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${reminder ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
             >
               <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${reminder ? 'translate-x-5' : 'translate-x-1'}`} />
             </button>
@@ -159,12 +168,12 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
           {reminder && (
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="w-8 h-8 rounded-lg bg-[#EAF3DE] flex items-center justify-center text-sm flex-shrink-0">⏰</div>
-              <span className="flex-1 text-sm text-gray-800">{t('reminder_time', lang)}</span>
+              <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('reminder_time', lang)}</span>
               <input
                 type="time"
                 value={reminderTime}
                 onChange={(e) => setReminderTime(e.target.value)}
-                className="text-xs text-gray-500 bg-transparent focus:outline-none cursor-pointer"
+                className="text-xs text-gray-500 dark:text-gray-400 bg-transparent focus:outline-none cursor-pointer"
               />
             </div>
           )}
@@ -173,20 +182,20 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
 
       {/* Data */}
       <div>
-        <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1.5 px-1">{t('data_section', lang)}</p>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-1.5 px-1">{t('data_section', lang)}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
           <button
             onClick={handleExport}
-            className="flex items-center gap-3 px-4 py-3 w-full border-b border-gray-50 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-3 px-4 py-3 w-full border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <div className="w-8 h-8 rounded-lg bg-[#EAF3DE] flex items-center justify-center text-sm flex-shrink-0">💾</div>
-            <span className="flex-1 text-sm text-gray-800 text-left">{t('export_data', lang)}</span>
-            <span className="text-gray-300 text-lg">›</span>
+            <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 text-left">{t('export_data', lang)}</span>
+            <span className="text-gray-300 dark:text-gray-600 text-lg">›</span>
           </button>
           <button
             onClick={handleReset}
             disabled={resetting}
-            className="flex items-center gap-3 px-4 py-3 w-full hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-3 px-4 py-3 w-full hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
           >
             <div className="w-8 h-8 rounded-lg bg-[#FCEBEB] flex items-center justify-center text-sm flex-shrink-0">🗑️</div>
             <span className="flex-1 text-sm text-red-500 text-left font-medium">
@@ -200,7 +209,7 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
       {/* Sign out */}
       <button
         onClick={onSignOut}
-        className="w-full py-2.5 text-sm text-gray-400 hover:text-red-400 transition-colors border border-gray-100 rounded-xl bg-white"
+        className="w-full py-2.5 text-sm text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors border border-gray-100 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900"
       >
         {t('sign_out', lang)}
       </button>

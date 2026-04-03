@@ -3,7 +3,7 @@ import BottomNav from './nav/BottomNav'
 
 export default function Layout({ activeTab, setActiveTab, children }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
       {/* Desktop sidebar */}
       <div className="hidden md:block w-60 flex-shrink-0">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
