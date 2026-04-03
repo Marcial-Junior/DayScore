@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { todayStr, getWeekWindow } from '../../utils/dates'
 import { t } from '../../utils/i18n'
+import TimePicker from '../ui/TimePicker'
 
 const ICON_BG_COLORS = ['#fff8e6', '#e8f5ee', '#EEEDFE', '#E6F1FB', '#FAEEDA', '#FCEBEB']
 const DEFAULT_ICONS = ['⭐', '✅', '💪', '🎯', '📌', '🔑', '⚡', '🌟']
@@ -400,11 +401,10 @@ export default function Routine({ routines, updateRoutines, lang }) {
                   className="flex-1 bg-gray-50 border border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder-gray-400"
                   autoFocus
                 />
-                <input
-                  type="time"
+                <TimePicker
                   value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="w-20 bg-gray-50 border border-transparent rounded-xl px-2 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 flex-shrink-0"
+                  onChange={setNewTime}
+                  triggerClassName="w-20 bg-gray-50 border border-transparent rounded-xl px-2 py-2 text-sm text-gray-700 text-center focus:outline-none flex-shrink-0"
                 />
               </div>
 

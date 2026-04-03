@@ -4,6 +4,7 @@ import { calcDayScore } from '../../utils/streak'
 import { t } from '../../utils/i18n'
 import ScoreRing from '../ui/ScoreRing'
 import ConfettiBurst from '../ui/ConfettiBurst'
+import TimePicker from '../ui/TimePicker'
 
 const MOODS = ['😔', '😐', '🙂', '😄', '🚀']
 
@@ -496,12 +497,7 @@ export default function Today({ tasks, updateTasks, mood, updateMood, routines, 
                   onChange={(e) => setNewDueDate(e.target.value)}
                   className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
                 />
-                <input
-                  type="time"
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-white focus:outline-none cursor-pointer"
-                />
+                <TimePicker value={newTime} onChange={setNewTime} />
               </div>
               {isEditing && (
                 <button
