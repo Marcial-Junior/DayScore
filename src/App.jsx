@@ -27,7 +27,11 @@ const ACCENT_COLORS = [
 const savedAccent = localStorage.getItem('ds_accent')
 if (savedAccent) {
   const found = ACCENT_COLORS.find((c) => c.value === savedAccent)
-  if (found) document.documentElement.style.setProperty('--primary-rgb', found.rgb)
+  if (found) {
+    document.documentElement.style.setProperty('--primary-rgb', found.rgb)
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', found.value)
+  }
 }
 
 // Apply saved dark mode before first render

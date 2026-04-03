@@ -26,7 +26,11 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
 
   useEffect(() => {
     const found = ACCENT_COLORS.find((c) => c.value === accent)
-    if (found) document.documentElement.style.setProperty('--primary-rgb', found.rgb)
+    if (found) {
+      document.documentElement.style.setProperty('--primary-rgb', found.rgb)
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', found.value)
+    }
     localStorage.setItem('ds_accent', accent)
   }, [accent])
 
@@ -101,9 +105,9 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
             <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('dark_mode', lang)}</span>
             <button
               onClick={() => setDark((v) => !v)}
-              className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${dark ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+              className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors flex-shrink-0 ${dark ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
             >
-              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${dark ? 'translate-x-5' : 'translate-x-1'}`} />
+              <span className={`w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${dark ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
           </div>
           {/* Accent color */}
@@ -160,9 +164,9 @@ export default function Settings({ session, tasks, mood, routines, lang, onLangC
             <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{t('daily_reminder', lang)}</span>
             <button
               onClick={() => setReminder((v) => !v)}
-              className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${reminder ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+              className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors flex-shrink-0 ${reminder ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
             >
-              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${reminder ? 'translate-x-5' : 'translate-x-1'}`} />
+              <span className={`w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${reminder ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
           </div>
           {reminder && (
